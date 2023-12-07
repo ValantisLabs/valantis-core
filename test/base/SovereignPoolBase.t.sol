@@ -144,4 +144,17 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
 
         _addToContractsToApprove(almAddress);
     }
+
+    // overwrite storage value helper functions
+    // to get corresponding slots use `forge inspect SovereignPool storageLayout --pretty`
+
+    function _setPoolManagerFeeBips(uint256 feeBips0, uint256 feeBips1) internal {
+        vm.store(address(pool), bytes32(uint256(5)), bytes32(feeBips0));
+        vm.store(address(pool), bytes32(uint256(6)), bytes32(feeBips1));
+    }
+
+    function _setProtocolFees(uint256 fee0, uint256 fee1) internal {
+        vm.store(address(pool), bytes32(uint256(7)), bytes32(fee0));
+        vm.store(address(pool), bytes32(uint256(8)), bytes32(fee1));
+    }
 }

@@ -13,6 +13,8 @@ contract Base is Test {
     using SafeERC20 for ERC20;
 
     address internal ZERO_ADDRESS = address(0);
+    address internal DUMP_ADDRESS = makeAddr('DUMP_ADDRESS');
+
     address internal POOL_MANAGER = makeAddr('POOL_MANAGER');
 
     address[] internal signers;
@@ -61,6 +63,12 @@ contract Base is Test {
         }
     }
 
+    function _setZeroBalance(address user, ERC20 token) internal {
+        uint256 amount = token.balanceOf(user);
+        vm.prank(user);
+        token.safeTransfer(DUMP_ADDRESS, amount);
+    }
+
     function _approveForUser(address user, address token) internal {
         uint256 approvalsLength = contractToApprove.length;
 
@@ -71,5 +79,9 @@ contract Base is Test {
         }
 
         vm.stopPrank();
+    }
+
+    function _assertTokenBalance(ERC20 token, address recipient, uint256 expectedAmount) internal {
+        assertEq(token.balanceOf(recipient), expectedAmount);
     }
 }

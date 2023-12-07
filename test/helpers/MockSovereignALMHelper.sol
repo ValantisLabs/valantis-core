@@ -5,7 +5,7 @@ import { MockSovereignALMFactory } from 'test/mocks/MockSovereignALMFactory.sol'
 import { ALMLiquidityQuote } from 'src/ALM/structs/SovereignALMStructs.sol';
 
 library MockSovereignALMHelper {
-    struct MockALMConfiguratio {
+    struct MockALMConfiguration {
         bool quoteExcessAmountIn;
         bool quoteExcessAmountOut;
         bool quoteFromPool;

@@ -7,6 +7,7 @@ import { IFlashBorrower } from 'src/pools/interfaces/IFlashBorrower.sol';
 import { IValantisPool } from 'src/pools/interfaces/IValantisPool.sol';
 
 import { SovereignPoolBase } from 'test/base/SovereignPoolBase.t.sol';
+import { MockSovereignVaultHelper } from 'test/helpers/MockSovereignVaultHelper.sol';
 
 contract SovereignPoolConcreteTest is SovereignPoolBase {
     /************************************************
@@ -208,6 +209,98 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         alm = makeAddr('NEW_ALM');
         vm.expectRevert(SovereignPool.SovereignPool__ALMAlreadySet.selector);
         pool.setALM(alm);
+    }
+
+    function test_claimPoolManagerFees() public {
+        // check error on unauthorized call to claim pool manager fees
+        vm.expectRevert(SovereignPool.SovereignPool__onlyPoolManager.selector);
+
+        pool.claimPoolManagerFees(1e3, 1e3);
+
+        // check fee bips are less than or equal to 1e4
+        vm.expectRevert(SovereignPool.SovereignPool__claimPoolManagerFees_invalidProtocolFee.selector);
+
+        vm.prank(POOL_MANAGER);
+
+        pool.claimPoolManagerFees(1e4 + 1, 1e4 + 1);
+
+        _setupBalanceForUser(address(pool), address(token0), 20e18);
+        _setupBalanceForUser(address(pool), address(token1), 20e18);
+
+        _setPoolManagerFeeBips(10e18, 10e18);
+
+        vm.prank(POOL_MANAGER);
+        pool.claimPoolManagerFees(5e3, 5e3);
+
+        _assertTokenBalance(token0, POOL_MANAGER, 5e18);
+        _assertTokenBalance(token1, POOL_MANAGER, 5e18);
+
+        assertEq(pool.feeProtocol0(), 5e18);
+        assertEq(pool.feeProtocol1(), 5e18);
+
+        // for pool with sovereign vault
+        address sovereignVault = MockSovereignVaultHelper.deploySovereignVault();
+
+        CustomConstructorArgsParams memory customParams;
+        customParams.sovereignVault = sovereignVault;
+
+        SovereignPoolConstructorArgs memory args = _generatCustomConstructorArgs(customParams);
+
+        pool = this.deploySovereignPool(protocolFactory, args);
+
+        MockSovereignVaultHelper.setPool(sovereignVault, address(pool));
+
+        // test with excess fee from sovereign vault
+        MockSovereignVaultHelper.toggleExcessFee(sovereignVault, true);
+
+        _setupBalanceForUser(sovereignVault, address(token0), 10e18 + 1);
+        _setupBalanceForUser(sovereignVault, address(token1), 10e18 + 1);
+
+        _setPoolManagerFeeBips(10e18, 10e18);
+
+        vm.expectRevert(SovereignPool.SovereignPool__claimPoolManagerFees_invalidFeeReceived.selector);
+        vm.prank(POOL_MANAGER);
+        pool.claimPoolManagerFees(0, 0);
+
+        MockSovereignVaultHelper.toggleExcessFee(sovereignVault, false);
+
+        // test happy path with sovereign vault
+        _setZeroBalance(POOL_MANAGER, token0);
+        _setZeroBalance(POOL_MANAGER, token1);
+
+        vm.prank(POOL_MANAGER);
+        pool.claimPoolManagerFees(1e3, 1e3);
+        _assertTokenBalance(token0, POOL_MANAGER, 9e18);
+        _assertTokenBalance(token1, POOL_MANAGER, 9e18);
+
+        assertEq(pool.feeProtocol0(), 1e18);
+        assertEq(pool.feeProtocol1(), 1e18);
+    }
+
+    function test_claimProtocolFees() public {
+        address gauge = makeAddr('GAUGE');
+
+        vm.prank(address(protocolFactory));
+        pool.setGauge(gauge);
+
+        // check error on unauthorized call to claim protocol fees
+        vm.expectRevert(SovereignPool.SovereignPool__onlyGauge.selector);
+
+        pool.claimProtocolFees();
+
+        _setProtocolFees(10e18, 10e18);
+        _setupBalanceForUser(address(pool), address(token0), 10e18);
+        _setupBalanceForUser(address(pool), address(token1), 10e18);
+
+        vm.prank(gauge);
+
+        pool.claimProtocolFees();
+
+        _assertTokenBalance(token0, gauge, 10e18);
+        _assertTokenBalance(token1, gauge, 10e18);
+
+        assertEq(pool.feeProtocol0(), 0);
+        assertEq(pool.feeProtocol1(), 0);
     }
 
     /************************************************
