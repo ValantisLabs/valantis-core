@@ -16,6 +16,16 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
     using SafeERC20 for IERC20;
     using SafeERC20 for ERC20;
 
+    /************************************************
+     *  ENUMS
+     ***********************************************/
+
+    enum AccessType {
+        SWAP,
+        DEPOSIT,
+        WITHDRAW
+    }
+
     struct TokenData {
         bool isTokenRebase;
         uint256 tokenAbsErrorTolerance;
@@ -50,6 +60,7 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
         _addToContractsToApprove(address(pool));
     }
 
+    // Flashloan Callback
     function onFlashLoan(
         address initiator,
         address token,
@@ -79,6 +90,39 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
         }
 
         return CALLBACK_HASH;
+    }
+
+    // Deposit Callback
+
+    function onDepositLiquidityCallback(uint256, uint256, bytes memory _data) external {
+        assertEq(address(pool), msg.sender);
+
+        (, uint256 amount0, uint256 amount1) = abi.decode(_data, (uint256, uint256, uint256));
+
+        token0.safeTransfer(msg.sender, amount0);
+        token1.safeTransfer(msg.sender, amount1);
+    }
+
+    // Verifier Module callback
+
+    function verify(
+        address _user,
+        bytes calldata,
+        uint8 accessType
+    ) external returns (bool success, bytes memory returnData) {
+        if (accessType == uint8(AccessType.SWAP) && _user == makeAddr('SWAP')) {
+            return (true, new bytes(0));
+        }
+
+        if (accessType == uint8(AccessType.DEPOSIT) && _user == makeAddr('DEPOSIT')) {
+            return (true, new bytes(0));
+        }
+
+        if (accessType == uint8(AccessType.WITHDRAW) && _user == makeAddr('WITHDRAW')) {
+            return (true, new bytes(0));
+        }
+
+        return (false, new bytes(0));
     }
 
     function _generateDefaultConstructorArgs()
@@ -142,6 +186,12 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
 
         almAddress = protocolFactory.deployALMPositionForSovereignPool(address(pool), almFactory, constructorArgs);
 
+        _setALMForPool(almAddress);
+    }
+
+    function _setALMForPool(address almAddress) internal {
+        vm.prank(POOL_MANAGER);
+        pool.setALM(almAddress);
         _addToContractsToApprove(almAddress);
     }
 

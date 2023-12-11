@@ -303,6 +303,169 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         assertEq(pool.feeProtocol1(), 0);
     }
 
+    function test_depositLiquidity() public {
+        address USER = _randomUser();
+
+        address ALM = address(this);
+
+        _setALMForPool(ALM);
+
+        uint256 amount0Deposit = 100e18;
+        uint256 amount1Deposit = 100e18;
+
+        _setupBalanceForUser(ALM, address(token0), amount0Deposit);
+        _setupBalanceForUser(ALM, address(token1), amount1Deposit);
+
+        vm.expectRevert(SovereignPool.SovereignPool__onlyALM.selector);
+
+        vm.prank(USER);
+
+        pool.depositLiquidity(10e18, 10e18, address(this), new bytes(0), new bytes(0));
+
+        // test zero deposit amount for both tokens not allowed
+        vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_zeroTotalDepositAmount.selector);
+
+        pool.depositLiquidity(0, 0, USER, new bytes(0), abi.encode(0, amount0Deposit, amount1Deposit));
+
+        // test revert when correct amount not transferred
+        vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_insufficientToken0Amount.selector);
+
+        pool.depositLiquidity(
+            amount0Deposit,
+            amount1Deposit,
+            USER,
+            new bytes(0),
+            abi.encode(1, amount0Deposit - 1, amount1Deposit)
+        );
+
+        vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_insufficientToken1Amount.selector);
+
+        pool.depositLiquidity(
+            amount0Deposit,
+            amount1Deposit,
+            USER,
+            new bytes(0),
+            abi.encode(2, amount0Deposit, amount1Deposit - 1)
+        );
+
+        // should work correctly
+        (uint256 amount0, uint256 amount1) = pool.depositLiquidity(
+            amount0Deposit,
+            amount1Deposit,
+            USER,
+            new bytes(0),
+            abi.encode(0, amount0Deposit, amount1Deposit)
+        );
+
+        assertEq(amount0, amount0Deposit);
+        assertEq(amount1, amount1Deposit);
+        (uint256 reserve0, uint256 reserve1) = pool.getReserves();
+        assertEq(reserve0, amount0Deposit);
+        assertEq(reserve1, amount1Deposit);
+
+        // tests for custom params
+
+        CustomConstructorArgsParams memory customArgs;
+        customArgs.sovereignVault = makeAddr('VAULT');
+
+        SovereignPoolConstructorArgs memory constructorArgs = _generatCustomConstructorArgs(customArgs);
+
+        pool = this.deploySovereignPool(protocolFactory, constructorArgs);
+
+        _setALMForPool(ALM);
+
+        vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_depositDisabled.selector);
+
+        pool.depositLiquidity(
+            amount0Deposit,
+            amount1Deposit,
+            USER,
+            new bytes(0),
+            abi.encode(2, amount0Deposit, amount1Deposit)
+        );
+
+        customArgs.sovereignVault = address(0);
+        customArgs.verifierModule = address(this);
+        customArgs.token0Data = TokenData(true, 10, 1e6);
+        customArgs.token1Data = TokenData(true, 10, 1e6);
+
+        constructorArgs = _generatCustomConstructorArgs(customArgs);
+
+        pool = this.deploySovereignPool(protocolFactory, constructorArgs);
+
+        _setALMForPool(ALM);
+
+        _setupBalanceForUser(ALM, address(token0), amount0Deposit);
+        _setupBalanceForUser(ALM, address(token1), amount1Deposit);
+
+        // check verify permission error
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SovereignPool.SovereignPool___verifyPermission_onlyPermissionedAccess.selector,
+                USER,
+                uint8(AccessType.DEPOSIT)
+            )
+        );
+        pool.depositLiquidity(
+            amount0Deposit,
+            amount1Deposit,
+            USER,
+            new bytes(0),
+            abi.encode(1, amount0Deposit, amount1Deposit)
+        );
+
+        // check token min amount for token0 error
+        vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_token0BelowMinimumDeposit.selector);
+        pool.depositLiquidity(
+            1e6 - 1,
+            amount1Deposit,
+            makeAddr('DEPOSIT'),
+            new bytes(0),
+            abi.encode(0, 1e6 - 1, amount1Deposit)
+        );
+
+        // check token min amount for token1 error
+        vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_token1BelowMinimumDeposit.selector);
+        pool.depositLiquidity(
+            amount0Deposit,
+            1e6 - 1,
+            makeAddr('DEPOSIT'),
+            new bytes(0),
+            abi.encode(0, amount0Deposit, 1e6 - 1)
+        );
+
+        // check for token0 diff error on transfer
+        vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_excessiveToken0ErrorOnTransfer.selector);
+        pool.depositLiquidity(
+            amount0Deposit,
+            amount1Deposit,
+            makeAddr('DEPOSIT'),
+            new bytes(0),
+            abi.encode(1, amount0Deposit - 11, amount1Deposit)
+        );
+
+        // check for token1 diff error on transfer
+        vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_excessiveToken1ErrorOnTransfer.selector);
+        pool.depositLiquidity(
+            amount0Deposit,
+            amount1Deposit,
+            makeAddr('DEPOSIT'),
+            new bytes(0),
+            abi.encode(1, amount0Deposit, amount1Deposit - 11)
+        );
+
+        (amount0, amount1) = pool.depositLiquidity(
+            amount0Deposit,
+            amount1Deposit,
+            makeAddr('DEPOSIT'),
+            new bytes(0),
+            abi.encode(1, amount0Deposit - 10, amount1Deposit - 10)
+        );
+
+        assertEq(amount0, amount0Deposit - 10);
+        assertEq(amount1, amount1Deposit - 10);
+    }
+
     /************************************************
      *  Test Public Functions
      ***********************************************/

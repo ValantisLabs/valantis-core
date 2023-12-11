@@ -92,7 +92,7 @@ contract MockSovereignVault is ISovereignVaultMinimal {
         }
     }
 
-    function quoteToRecipient(bool _isZeroToOne, uint256 _amount, address _recipient) external {
+    function quoteToRecipient(bool _isZeroToOne, uint256 _amount, address) external {
         if (msg.sender != alm) revert MockSovereignVault__quoteToRecipient_onlyALM();
 
         if (_amount == 0) return;
