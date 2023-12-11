@@ -207,4 +207,9 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
         vm.store(address(pool), bytes32(uint256(7)), bytes32(fee0));
         vm.store(address(pool), bytes32(uint256(8)), bytes32(fee1));
     }
+
+    function _setReserves(uint256 reserve0, uint256 reserve1) internal {
+        vm.store(address(pool), bytes32(uint256(9)), bytes32(reserve0));
+        vm.store(address(pool), bytes32(uint256(10)), bytes32(reserve1));
+    }
 }

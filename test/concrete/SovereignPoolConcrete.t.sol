@@ -466,6 +466,64 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         assertEq(amount1, amount1Deposit - 10);
     }
 
+    function test_withdrawLiquidity() public {
+        address USER = _randomUser();
+
+        address ALM = address(this);
+
+        _setALMForPool(ALM);
+
+        uint256 amount0 = 100e18;
+        uint256 amount1 = 100e18;
+
+        vm.expectRevert(SovereignPool.SovereignPool__onlyALM.selector);
+
+        vm.prank(USER);
+        // check permissioned call for withdraw liquidity
+        pool.withdrawLiquidity(10e18, 10e18, USER, USER, new bytes(0));
+
+        vm.expectRevert(SovereignPool.SovereignPool__withdrawLiquidity_invalidRecipient.selector);
+        pool.withdrawLiquidity(amount0, amount1, USER, address(0), new bytes(0));
+
+        vm.expectRevert(SovereignPool.SovereignPool__withdrawLiquidity_insufficientReserve0.selector);
+        pool.withdrawLiquidity(amount0, amount1, USER, USER, new bytes(0));
+
+        vm.expectRevert(SovereignPool.SovereignPool__withdrawLiquidity_insufficientReserve1.selector);
+        pool.withdrawLiquidity(0, amount1, USER, USER, new bytes(0));
+
+        CustomConstructorArgsParams memory customArgs;
+        customArgs.verifierModule = address(this);
+
+        pool = this.deploySovereignPool(protocolFactory, _generatCustomConstructorArgs(customArgs));
+
+        _setALMForPool(ALM);
+        _setReserves(amount0 + 100, amount1 + 100);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SovereignPool.SovereignPool___verifyPermission_onlyPermissionedAccess.selector,
+                USER,
+                uint8(AccessType.WITHDRAW)
+            )
+        );
+
+        pool.withdrawLiquidity(amount0, amount1, USER, USER, new bytes(0));
+
+        // happy path
+        _setupBalanceForUser(address(pool), address(token0), amount0);
+        _setupBalanceForUser(address(pool), address(token1), amount1);
+
+        pool.withdrawLiquidity(amount0, amount1, makeAddr('WITHDRAW'), USER, new bytes(0));
+
+        _assertTokenBalance(token0, USER, amount0);
+        _assertTokenBalance(token1, USER, amount1);
+
+        (uint256 reserve0, uint256 reserve1) = pool.getReserves();
+
+        assertEq(reserve0, 100);
+        assertEq(reserve1, 100);
+    }
+
     /************************************************
      *  Test Public Functions
      ***********************************************/
