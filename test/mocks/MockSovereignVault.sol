@@ -39,6 +39,11 @@ contract MockSovereignVault is ISovereignVaultMinimal {
      */
     bool public sendInvalidReservesArray;
 
+    /**
+        @dev If True, `getReservesForPool` will return the wrong length array. 
+     */
+    bool public sendInvalidTokensArray;
+
     function setPool(address _pool) external {
         pool = ISovereignPool(_pool);
     }
@@ -59,15 +64,24 @@ contract MockSovereignVault is ISovereignVaultMinimal {
         sendInvalidReservesArray = _state;
     }
 
-    function getTokensForPool(address) external view override returns (address[] memory) {
-        address[] memory tokens = new address[](3);
+    function toggleSendInvalidTokensArray(bool _state) external {
+        sendInvalidTokensArray = _state;
+    }
 
-        tokens[0] = pool.token0();
-        tokens[1] = pool.token1();
-        // Dummy token
-        tokens[2] = address(0x123);
+    function getTokensForPool(address) external view override returns (address[] memory tokens) {
+        if (sendInvalidTokensArray) {
+            tokens = new address[](3);
 
-        return tokens;
+            tokens[0] = pool.token0();
+            tokens[1] = pool.token1();
+            // Dummy token
+            tokens[2] = address(0x123);
+        } else {
+            tokens = new address[](2);
+
+            tokens[0] = pool.token0();
+            tokens[1] = pool.token1();
+        }
     }
 
     function getReservesForPool(

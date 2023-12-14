@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
+import 'forge-std/console.sol';
 import 'forge-std/Test.sol';
 import { ERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import { IERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
@@ -60,6 +61,7 @@ contract Base is Test {
             vm.deal(user, amount);
         } else {
             deal(token, user, amount);
+            _approveForUser(user, token);
         }
     }
 
@@ -75,7 +77,11 @@ contract Base is Test {
         vm.startPrank(user);
 
         for (uint i; i < approvalsLength; i++) {
-            IERC20(token).safeApprove(contractToApprove[i], type(uint256).max);
+            if (user == contractToApprove[i] || IERC20(token).allowance(user, contractToApprove[i]) > 0) {
+                continue;
+            }
+            // Not using safeApprove because of issues with prank
+            IERC20(token).approve(contractToApprove[i], type(uint256).max);
         }
 
         vm.stopPrank();

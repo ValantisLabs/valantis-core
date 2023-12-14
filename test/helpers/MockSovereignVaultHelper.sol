@@ -16,4 +16,8 @@ library MockSovereignVaultHelper {
     function setPool(address vault, address pool) internal {
         MockSovereignVault(vault).setPool(pool);
     }
+
+    function toggleInvalidReserveArray(address vault, bool state) internal {
+        MockSovereignVault(vault).toggleSendInvalidReservesArray(state);
+    }
 }

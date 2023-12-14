@@ -1,13 +1,17 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
+import { console } from 'forge-std/console.sol';
+
 import { ERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import { IERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import { SafeERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 
+import { ALMLiquidityQuoteInput, ALMLiquidityQuote } from 'src/ALM/structs/SovereignALMStructs.sol';
 import { SovereignPoolConstructorArgs } from 'src/pools/structs/SovereignPoolStructs.sol';
 import { SovereignPool } from 'src/pools/SovereignPool.sol';
 import { ProtocolFactory } from 'src/protocol-factory/ProtocolFactory.sol';
+import { SwapFeeModuleData } from 'src/swap-fee-modules/interfaces/ISwapFeeModule.sol';
 
 import { Base } from 'test/base/Base.sol';
 import { SovereignPoolDeployer } from 'test/deployers/SovereignPoolDeployer.sol';
@@ -93,7 +97,6 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
     }
 
     // Deposit Callback
-
     function onDepositLiquidityCallback(uint256, uint256, bytes memory _data) external {
         assertEq(address(pool), msg.sender);
 
@@ -104,7 +107,6 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
     }
 
     // Verifier Module callback
-
     function verify(
         address _user,
         bytes calldata,
@@ -121,9 +123,41 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
         if (accessType == uint8(AccessType.WITHDRAW) && _user == makeAddr('WITHDRAW')) {
             return (true, new bytes(0));
         }
-
-        return (false, new bytes(0));
     }
+
+    // Swap Fee Module function
+    function getSwapFeeInBips(
+        bool,
+        uint256,
+        address,
+        bytes memory data
+    ) external pure returns (SwapFeeModuleData memory swapFeeModuleData) {
+        (uint256 swapFeeBips, bytes memory internalContext) = abi.decode(data, (uint256, bytes));
+        swapFeeModuleData.feeInBips = swapFeeBips;
+        swapFeeModuleData.internalContext = internalContext;
+    }
+
+    function getLiquidityQuote(
+        ALMLiquidityQuoteInput memory,
+        bytes calldata externalContext,
+        bytes calldata
+    ) external returns (ALMLiquidityQuote memory liquidityQuote) {
+        assertEq(msg.sender, address(pool));
+
+        (liquidityQuote) = abi.decode(externalContext, (ALMLiquidityQuote));
+    }
+
+    function sovereignPoolSwapCallback(address _tokenIn, uint256, bytes calldata _swapCallbackContext) external {
+        uint256 amountIn = abi.decode(_swapCallbackContext, (uint256));
+
+        _setupBalanceForUser(address(pool), _tokenIn, amountIn);
+    }
+
+    function onSwapCallback(bool, uint256, uint256) external {}
+
+    function writeOracleUpdate(bool, uint256, uint256, uint256) external {}
+
+    function callbackOnSwapEnd(uint256, uint256, uint256, SwapFeeModuleData calldata) external {}
 
     function _generateDefaultConstructorArgs()
         internal
@@ -198,9 +232,13 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
     // overwrite storage value helper functions
     // to get corresponding slots use `forge inspect SovereignPool storageLayout --pretty`
 
-    function _setPoolManagerFeeBips(uint256 feeBips0, uint256 feeBips1) internal {
-        vm.store(address(pool), bytes32(uint256(5)), bytes32(feeBips0));
-        vm.store(address(pool), bytes32(uint256(6)), bytes32(feeBips1));
+    function _setPoolManagerFeeBips(uint256 poolManagerFeeBips) internal {
+        vm.store(address(pool), bytes32(uint256(4)), bytes32(poolManagerFeeBips));
+    }
+
+    function _setPoolManagerFees(uint256 fees0, uint256 fees1) internal {
+        vm.store(address(pool), bytes32(uint256(5)), bytes32(fees0));
+        vm.store(address(pool), bytes32(uint256(6)), bytes32(fees1));
     }
 
     function _setProtocolFees(uint256 fee0, uint256 fee1) internal {
@@ -211,5 +249,21 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
     function _setReserves(uint256 reserve0, uint256 reserve1) internal {
         vm.store(address(pool), bytes32(uint256(9)), bytes32(reserve0));
         vm.store(address(pool), bytes32(uint256(10)), bytes32(reserve1));
+    }
+
+    function _setALM(address alm) internal {
+        vm.store(address(pool), bytes32(uint256(1)), bytes32(uint256(uint160(alm))));
+    }
+
+    function _setVerifierModule(address verifierModule) internal {
+        vm.store(address(pool), bytes32(uint256(11)), bytes32(uint256(uint160(verifierModule))));
+    }
+
+    function _setOracleModule(address oracleModule) internal {
+        vm.store(address(pool), bytes32(uint256(12)), bytes32(uint256(uint160(oracleModule))));
+    }
+
+    function _setSwapFeeModule(address swapFeeModule) internal {
+        vm.store(address(pool), bytes32(uint256(13)), bytes32(uint256(uint160(swapFeeModule))));
     }
 }
