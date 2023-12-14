@@ -24,23 +24,24 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
      ***********************************************/
 
     function test_defaultConstructorArgs() public {
-        // check pool manager is set perfectly
+        // Check pool manager is set perfectly.
         assertEq(pool.poolManager(), POOL_MANAGER);
 
         address[] memory tokens = pool.getTokens();
-        // check tokens are set correctly
+
+        // Check tokens are set correctly.
         assertEq(tokens[0], address(token0));
         assertEq(tokens[1], address(token1));
 
-        // check protocol factory is set correctly
+        // Check protocol factory is set correctly.
         assertEq(pool.protocolFactory(), address(protocolFactory));
 
-        // check initial reserves are zero;
+        // Check initial reserves are zero.
         (uint256 reserve0, uint256 reserve1) = pool.getReserves();
         assertEq(reserve0, 0);
         assertEq(reserve1, 0);
 
-        // check sovereign vault is address of pool
+        // Check sovereign vault is address of pool.
         assertEq(pool.sovereignVault(), address(pool));
 
         assertEq(pool.isLocked(), false);
@@ -61,13 +62,13 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         uint256 snapshot = vm.snapshot();
 
-        // check custom params for token0
+        // Check custom params for token0.
         assertEq(pool.isRebaseTokenPool(), true);
         assertEq(pool.isToken0Rebase(), true);
         assertEq(pool.token0MinAmount(), customParams.token0Data.tokenMinAmount);
         assertEq(pool.token0AbsErrorTolerance(), customParams.token0Data.tokenAbsErrorTolerance);
 
-        // increase tolerance to more than MAX
+        // Increase tolerance to more than MAX.
         args.token0AbsErrorTolerance = 100;
 
         vm.expectRevert(SovereignPool.SovereignPool__excessiveToken0AbsErrorTolerance.selector);
@@ -77,14 +78,14 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         vm.revertTo(snapshot);
         args.token0AbsErrorTolerance = customParams.token0Data.tokenAbsErrorTolerance;
 
-        // check vault and verifier module addresses
+        // Check vault and verifier module addresses.
         assertEq(pool.sovereignVault(), customParams.sovereignVault);
         assertEq(pool.verifierModule(), customParams.verifierModule);
 
-        // check defaulFeeBips passed
+        // Check defaulFeeBips passed.
         assertEq(pool.defaultSwapFeeBips(), customParams.defaultFeeBips);
 
-        // increase fee bips to be more than MAX_FEE_BIPS;
+        // Increase fee bips to be more than MAX_FEE_BIPS.
         args.defaultSwapFeeBips = 5e10;
         pool = this.deploySovereignPool(protocolFactory, args);
         assertEq(pool.defaultSwapFeeBips(), pool.MAX_SWAP_FEE_BIPS());
@@ -97,7 +98,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
     function test_setPoolManager() public {
         address newManager = makeAddr('NEW_POOL_MANAGER');
 
-        // check error on unauthorized call to set pool manager
+        // Check error on unauthorized call to set pool manager.
         vm.expectRevert(SovereignPool.SovereignPool__onlyPoolManager.selector);
 
         pool.setPoolManager(newManager);
@@ -110,7 +111,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
     }
 
     function test_setPoolManagerFeeBips() public {
-        // check error on unauthorized call to set pool manager
+        // Check error on unauthorized call to set pool manager.
         vm.expectRevert(SovereignPool.SovereignPool__onlyPoolManager.selector);
 
         uint256 poolManagerFeeBips = 1e10;
@@ -119,7 +120,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         vm.startPrank(POOL_MANAGER);
 
-        // check error on trying to set more feeBips than allowed
+        // Check error on trying to set more feeBips than allowed.
         vm.expectRevert(SovereignPool.SovereignPool__setPoolManagerFeeBips_excessivePoolManagerFee.selector);
 
         pool.setPoolManagerFeeBips(poolManagerFeeBips);
@@ -134,7 +135,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
     function test_setSovereignOracle() public {
         address oracle;
 
-        // check error on unauthorized call to set sovereign oracle
+        // Check error on unauthorized call to set sovereign oracle.
         vm.expectRevert(SovereignPool.SovereignPool__onlyPoolManager.selector);
 
         pool.setSovereignOracle(oracle);
@@ -152,7 +153,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         oracle = makeAddr('NEW_ORACLE');
 
-        // check error on trying to update sovereign oracle
+        // Check error on trying to update sovereign oracle.
         vm.expectRevert(SovereignPool.SovereignPool__setSovereignOracle__sovereignOracleAlreadySet.selector);
 
         pool.setSovereignOracle(oracle);
@@ -161,7 +162,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
     function test_setGauge() public {
         address gauge = makeAddr('GAUGE');
 
-        // check error on unauthorized call to set gauge
+        // Check error on unauthorized call to set gauge.
         vm.expectRevert(SovereignPool.SovereignPool__onlyProtocolFactory.selector);
 
         pool.setGauge(gauge);
@@ -172,7 +173,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         assertEq(pool.gauge(), gauge);
 
-        // check error on trying to update gauge
+        // Check error on trying to update gauge.
         gauge = makeAddr('NEW_GAUGE');
 
         vm.expectRevert(SovereignPool.SovereignPool__setGauge_gaugeAlreadySet.selector);
@@ -183,7 +184,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
     function test_setSwapFeeModule() public {
         address swapFeeModule = makeAddr('SWAP_FEE_MODULE');
 
-        // check error on unauthorized call to set swap fee module
+        // Check error on unauthorized call to set swap fee module.
         vm.expectRevert(SovereignPool.SovereignPool__onlyPoolManager.selector);
 
         pool.setSwapFeeModule(swapFeeModule);
@@ -198,14 +199,14 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
     function test_setALM() public {
         address alm;
 
-        // check error on unauthorized call to set alm
+        // Check error on unauthorized call to set alm.
         vm.expectRevert(SovereignPool.SovereignPool__onlyPoolManager.selector);
 
         pool.setALM(alm);
 
         vm.startPrank(POOL_MANAGER);
 
-        // check zero error protection
+        // Check zero error protection.
         vm.expectRevert(SovereignPool.SovereignPool__ZeroAddress.selector);
 
         pool.setALM(alm);
@@ -216,19 +217,19 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         assertEq(pool.alm(), alm);
 
-        // check error on trying to update alm
+        // Check error on trying to update alm.
         alm = makeAddr('NEW_ALM');
         vm.expectRevert(SovereignPool.SovereignPool__ALMAlreadySet.selector);
         pool.setALM(alm);
     }
 
     function test_claimPoolManagerFees() public {
-        // check error on unauthorized call to claim pool manager fees
+        // Check error on unauthorized call to claim pool manager fees.
         vm.expectRevert(SovereignPool.SovereignPool__onlyPoolManager.selector);
 
         pool.claimPoolManagerFees(1e3, 1e3);
 
-        // check fee bips are less than or equal to 1e4
+        // Check fee bips are less than or equal to 1e4.
         vm.expectRevert(SovereignPool.SovereignPool__claimPoolManagerFees_invalidProtocolFee.selector);
 
         vm.prank(POOL_MANAGER);
@@ -249,7 +250,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         assertEq(pool.feeProtocol0(), 5e18);
         assertEq(pool.feeProtocol1(), 5e18);
 
-        // for pool with sovereign vault
+        // For pool with sovereign vault.
         address sovereignVault = MockSovereignVaultHelper.deploySovereignVault();
 
         CustomConstructorArgsParams memory customParams;
@@ -261,7 +262,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         MockSovereignVaultHelper.setPool(sovereignVault, address(pool));
 
-        // test with excess fee from sovereign vault
+        // Test with excess fee from sovereign vault.
         MockSovereignVaultHelper.toggleExcessFee(sovereignVault, true);
 
         _setupBalanceForUser(sovereignVault, address(token0), 10e18 + 1);
@@ -275,7 +276,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         MockSovereignVaultHelper.toggleExcessFee(sovereignVault, false);
 
-        // test happy path with sovereign vault
+        // Test happy path with sovereign vault.
         _setZeroBalance(POOL_MANAGER, token0);
         _setZeroBalance(POOL_MANAGER, token1);
 
@@ -294,7 +295,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         vm.prank(address(protocolFactory));
         pool.setGauge(gauge);
 
-        // check error on unauthorized call to claim protocol fees
+        // Check error on unauthorized call to claim protocol fees.
         vm.expectRevert(SovereignPool.SovereignPool__onlyGauge.selector);
 
         pool.claimProtocolFees();
@@ -333,12 +334,12 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         pool.depositLiquidity(10e18, 10e18, address(this), new bytes(0), new bytes(0));
 
-        // test zero deposit amount for both tokens not allowed
+        // Test zero deposit amount for both tokens not allowed.
         vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_zeroTotalDepositAmount.selector);
 
         pool.depositLiquidity(0, 0, USER, new bytes(0), abi.encode(0, amount0Deposit, amount1Deposit));
 
-        // test revert when correct amount not transferred
+        // Test revert when correct amount not transferred.
         vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_insufficientToken0Amount.selector);
 
         pool.depositLiquidity(
@@ -359,7 +360,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
             abi.encode(2, amount0Deposit, amount1Deposit - 1)
         );
 
-        // should work correctly
+        // Should work correctly.
         (uint256 amount0, uint256 amount1) = pool.depositLiquidity(
             amount0Deposit,
             amount1Deposit,
@@ -374,8 +375,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         assertEq(reserve0, amount0Deposit);
         assertEq(reserve1, amount1Deposit);
 
-        // tests for custom params
-
+        // Tests for custom params.
         CustomConstructorArgsParams memory customArgs;
         customArgs.sovereignVault = makeAddr('VAULT');
 
@@ -409,7 +409,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         _setupBalanceForUser(ALM, address(token0), amount0Deposit);
         _setupBalanceForUser(ALM, address(token1), amount1Deposit);
 
-        // check verify permission error
+        // Check verify permission error.
         vm.expectRevert(
             abi.encodeWithSelector(
                 SovereignPool.SovereignPool___verifyPermission_onlyPermissionedAccess.selector,
@@ -425,7 +425,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
             abi.encode(1, amount0Deposit, amount1Deposit)
         );
 
-        // check token min amount for token0 error
+        // Check token min amount for token0 error.
         vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_token0BelowMinimumDeposit.selector);
         pool.depositLiquidity(
             1e6 - 1,
@@ -435,7 +435,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
             abi.encode(0, 1e6 - 1, amount1Deposit)
         );
 
-        // check token min amount for token1 error
+        // Check token min amount for token1 error.
         vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_token1BelowMinimumDeposit.selector);
         pool.depositLiquidity(
             amount0Deposit,
@@ -445,7 +445,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
             abi.encode(0, amount0Deposit, 1e6 - 1)
         );
 
-        // check for token0 diff error on transfer
+        // Check for token0 diff error on transfer.
         vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_excessiveToken0ErrorOnTransfer.selector);
         pool.depositLiquidity(
             amount0Deposit,
@@ -455,7 +455,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
             abi.encode(1, amount0Deposit - 11, amount1Deposit)
         );
 
-        // check for token1 diff error on transfer
+        // Check for token1 diff error on transfer.
         vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_excessiveToken1ErrorOnTransfer.selector);
         pool.depositLiquidity(
             amount0Deposit,
@@ -490,7 +490,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         vm.expectRevert(SovereignPool.SovereignPool__onlyALM.selector);
 
         vm.prank(USER);
-        // check permissioned call for withdraw liquidity
+        // Check permissioned call for withdraw liquidity.
         pool.withdrawLiquidity(10e18, 10e18, USER, USER, new bytes(0));
 
         vm.expectRevert(SovereignPool.SovereignPool__withdrawLiquidity_invalidRecipient.selector);
@@ -520,7 +520,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         pool.withdrawLiquidity(amount0, amount1, USER, USER, new bytes(0));
 
-        // happy path
+        // Happy path.
         _setupBalanceForUser(address(pool), address(token0), amount0);
         _setupBalanceForUser(address(pool), address(token1), amount1);
 
@@ -550,28 +550,28 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         _setupBalanceForUser(address(pool), address(token0), amount * 2);
 
-        // check revert on incorrect callback hash
+        // Check revert on incorrect callback hash.
         vm.expectRevert(IValantisPool.ValantisPool__flashloan_callbackFailed.selector);
         vm.prank(initiator);
         pool.flashLoan(true, FLASH_BORROWER, amount, data);
 
-        // check revert on insufficient allowance
+        // Check revert on insufficient allowance.
         vm.expectRevert('ERC20: insufficient allowance');
         data = abi.encode(1, initiator);
         vm.prank(initiator);
         pool.flashLoan(true, FLASH_BORROWER, amount, data);
 
-        // check revert on amount decrease post flashloan
+        // Check revert on amount decrease post flashloan.
         data = abi.encode(3, address(this));
         vm.expectRevert(IValantisPool.ValantisPool__flashLoan_flashLoanNotRepaid.selector);
         pool.flashLoan(true, FLASH_BORROWER, amount, data);
 
-        // check happy path works fine
+        // Check happy path works fine.
         data = abi.encode(2, initiator);
         vm.prank(initiator);
         pool.flashLoan(true, FLASH_BORROWER, amount, data);
 
-        // check flashloan when sovereignVault is not pool address
+        // Check flashloan when sovereignVault is not pool address.
         SovereignPoolConstructorArgs memory args = _generateDefaultConstructorArgs();
         address vault = makeAddr('VAULT');
         args.sovereignVault = vault;
@@ -581,7 +581,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         vm.expectRevert(IValantisPool.ValantisPool__flashLoan_flashLoanDisabled.selector);
         pool.flashLoan(true, FLASH_BORROWER, amount, data);
 
-        // check flashloan for rebase token not allowed
+        // Check flashloan for rebase token not allowed.
         args.sovereignVault = address(0);
         args.isToken0Rebase = true;
         pool = this.deploySovereignPool(protocolFactory, args);
@@ -597,23 +597,23 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         SovereignPoolSwapParams memory swapParams;
 
-        // Test error when amountIn is zero
+        // Test error when amountIn is zero.
         vm.expectRevert(SovereignPool.SovereignPool__swap_insufficientAmountIn.selector);
         pool.swap(swapParams);
 
         swapParams.amountIn = 10e18;
 
-        // Test error when recipient is zero
+        // Test error when recipient is zero.
         vm.expectRevert(SovereignPool.SovereignPool__swap_invalidRecipient.selector);
         pool.swap(swapParams);
 
         swapParams.recipient = RECIPIENT;
 
-        // Test error when tokenOut is address(0)
+        // Test error when tokenOut is address(0).
         vm.expectRevert(SovereignPool.SovereignPool__swap_invalidSwapTokenOut.selector);
         pool.swap(swapParams);
 
-        // Test error when tokenOut in tokenIn
+        // Test error when tokenOut in tokenIn.
         swapParams.swapTokenOut = address(101);
 
         vm.expectRevert(SovereignPool.SovereignPool__swap_invalidPoolTokenOut.selector);
@@ -621,7 +621,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         swapParams.swapTokenOut = address(token0);
 
-        // Test with permission verifier
+        // Test with permission verifier.
         _setVerifierModule(address(this));
 
         vm.expectRevert(
@@ -634,7 +634,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         vm.prank(USER);
         pool.swap(swapParams);
 
-        // Test error when fee quoted is more than MAX
+        // Test error when fee quoted is more than MAX.
         _setSwapFeeModule(address(this));
 
         swapParams.swapContext = SovereignPoolSwapContextData(
@@ -653,11 +653,11 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         _setALM(address(this));
 
-        // Test failing cases for invalid liquidity quote by ALM
+        // Test failing cases for invalid liquidity quote by ALM.
 
         swapParams.swapContext.externalContext = abi.encode(ALMLiquidityQuote(true, false, 10e18, 11e18));
 
-        // This revert due to more reserve being quoted than was available in reserves
+        // This revert due to more reserve being quoted than was available in reserves.
         vm.expectRevert(SovereignPool.SovereignPool__swap_invalidLiquidityQuote.selector);
         pool.swap(swapParams);
 
@@ -665,17 +665,17 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         swapParams.amountOutMin = 11e18;
 
-        // This revert due to amountOut being quoted less than amountOutMin
+        // This revert due to amountOut being quoted less than amountOutMin.
         vm.expectRevert(SovereignPool.SovereignPool__swap_invalidLiquidityQuote.selector);
         pool.swap(swapParams);
 
         swapParams.amountOutMin = 0;
 
-        // This revert due to more amountIn filled than amountIn provided
+        // This revert due to more amountIn filled than amountIn provided.
         vm.expectRevert(SovereignPool.SovereignPool__swap_invalidLiquidityQuote.selector);
         pool.swap(swapParams);
 
-        // If amountOut quoted is zero, both amountIn and amountOut returned should be zero
+        // If amountOut quoted is zero, both amountIn and amountOut returned should be zero.
         swapParams.swapContext.externalContext = abi.encode(ALMLiquidityQuote(true, false, 0, 5e18));
 
         (uint256 amountInUsed, uint256 amountOut) = pool.swap(swapParams);
@@ -685,23 +685,23 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         _setupBalanceForUser(address(pool), address(token0), 10e18);
 
-        // When we want funds to be transferred through callback
-
+        // When we want funds to be transferred through callback.
         swapParams.isSwapCallback = true;
         swapParams.swapContext.externalContext = abi.encode(ALMLiquidityQuote(true, false, 5e18, 5e18));
         swapParams.swapContext.swapCallbackContext = abi.encode(5e18 - 1);
-        // Amount transferred in is less than amountIn requested
+
+        // Amount transferred in is less than amountIn requested.
         vm.expectRevert(SovereignPool.SovereignPool___handleTokenInOnSwap_invalidTokenInAmount.selector);
         (amountInUsed, amountOut) = pool.swap(swapParams);
 
         swapParams.isSwapCallback = false;
 
-        // When we want funds to be transferred
+        // When we want funds to be transferred.
         _setupBalanceForUser(address(this), address(token1), 10e18);
 
         uint256 snapshot = vm.snapshot();
 
-        // Happy path with zero swap fee
+        // Happy path with zero swap fee.
         (amountInUsed, amountOut) = pool.swap(swapParams);
         assertEq(amountInUsed, 5e18);
         assertEq(amountOut, 5e18);
@@ -716,12 +716,11 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
             ALMLiquidityQuote(true, false, 5e18, Math.mulDiv(10e18, 1e4, 1e4 + 100))
         );
 
-        // Half fee to pool manager
+        // Half fee to pool manager.
         _setPoolManagerFeeBips(5000);
         (amountInUsed, amountOut) = pool.swap(swapParams);
 
-        // Check fee and reserve updates correctly
-
+        // Check fee and reserve updates correctly.
         assertEq(amountInUsed, 10e18, 'AmountIn not correct');
         assertEq(amountOut, 5e18, 'AmountOut not correct');
 
@@ -742,8 +741,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
             'Pool manager1 fee not updated correctly'
         );
 
-        // Swap in opposite direction to check it behaves same
-
+        // Swap in opposite direction to check it behaves same.
         vm.revertTo(snapshot);
 
         _setZeroBalance(address(pool), token0);
@@ -764,12 +762,11 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
             ALMLiquidityQuote(true, false, 5e18, Math.mulDiv(10e18, 1e4, 1e4 + 100))
         );
 
-        // Half fee to pool manager
+        // Half fee to pool manager.
         _setPoolManagerFeeBips(5000);
         (amountInUsed, amountOut) = pool.swap(swapParams);
 
-        // Check fee and reserve updates correctly
-
+        // Check fee and reserve updates correctly.
         assertEq(amountInUsed, 10e18, 'AmountIn not correct');
         assertEq(amountOut, 5e18, 'AmountOut not correct');
 
@@ -790,8 +787,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
             'Pool manager1 fee not updated correctly'
         );
 
-        // Prepare new pool, but with rebase tokens
-
+        // Prepare new pool, but with rebase tokens.
         SovereignPoolConstructorArgs memory args = _generateDefaultConstructorArgs();
 
         args.isToken0Rebase = true;
@@ -822,16 +818,16 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
             ALMLiquidityQuote(true, true, 5e18, Math.mulDiv(10e18, 1e4, 1e4 + 100))
         );
 
-        // Should revert when error in token in transfer for rebase token is more than 10
+        // Should revert when error in token in transfer for rebase token is more than 10.
         vm.expectRevert(SovereignPool.SovereignPool___handleTokenInOnSwap_excessiveTokenInErrorOnTransfer.selector);
         pool.swap(swapParams);
 
         swapParams.swapContext.swapCallbackContext = abi.encode(10e18 - 9);
 
-        // Checks callback to ALM on swap end
+        // Checks callback to ALM on swap end.
         vm.expectCall(address(this), abi.encodeWithSelector(this.onSwapCallback.selector, true, 10e18, 5e18));
 
-        // Check callback to oracle
+        // Check callback to oracle.
         vm.expectCall(
             address(this),
             abi.encodeWithSelector(
@@ -843,7 +839,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
             )
         );
 
-        // Check callback to swap fee module
+        // Check callback to swap fee module.
         vm.expectCall(
             address(this),
             abi.encodeWithSelector(
@@ -907,7 +903,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         assertEq(reserve0, 10e18);
         assertEq(reserve1, 10e18);
 
-        // Check when pool only have rebase tokens
+        // Check when pool only have rebase tokens.
         CustomConstructorArgsParams memory customParams;
         customParams.token0Data.isTokenRebase = true;
         customParams.token1Data.isTokenRebase = true;
@@ -924,7 +920,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         assertEq(reserve0, 10e18);
         assertEq(reserve1, 10e18);
 
-        // for pool with sovereign vault and rebase tokens
+        // For pool with sovereign vault and rebase tokens.
         address sovereignVault = MockSovereignVaultHelper.deploySovereignVault();
 
         customParams.token0Data.isTokenRebase = true;
@@ -960,7 +956,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         assertEq(tokens[0], address(token0));
         assertEq(tokens[1], address(token1));
 
-        // For pools with sovereign vault
+        // For pools with sovereign vault.
         address sovereignVault = MockSovereignVaultHelper.deploySovereignVault();
 
         CustomConstructorArgsParams memory customParams;
