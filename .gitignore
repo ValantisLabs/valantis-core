@@ -16,6 +16,10 @@ docs/
 node_modules
 .env
 
+# Coverage files
+lcov.info
+report/
+
 # Hardhat files
 /cache
 /artifacts

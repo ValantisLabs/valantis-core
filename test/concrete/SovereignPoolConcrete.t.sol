@@ -592,8 +592,6 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
     function test_swap() public {
         address RECIPIENT = makeAddr('RECIPIENT');
-        address USER = _randomUser();
-        address SWAP_USER = makeAddr('SWAP');
 
         SovereignPoolSwapParams memory swapParams;
 
@@ -621,19 +619,6 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         swapParams.swapTokenOut = address(token0);
 
-        // Test with permission verifier.
-        _setVerifierModule(address(this));
-
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                SovereignPool.SovereignPool___verifyPermission_onlyPermissionedAccess.selector,
-                USER,
-                uint8(AccessType.SWAP)
-            )
-        );
-        vm.prank(USER);
-        pool.swap(swapParams);
-
         // Test error when fee quoted is more than MAX.
         _setSwapFeeModule(address(this));
 
@@ -645,10 +630,8 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         );
 
         vm.expectRevert(SovereignPool.SovereignPool__swap_excessiveSwapFee.selector);
-        vm.prank(SWAP_USER);
         pool.swap(swapParams);
 
-        _setVerifierModule(address(0));
         _setSwapFeeModule(address(0));
 
         _setALM(address(this));
@@ -752,18 +735,47 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         _setupBalanceForUser(address(pool), address(token1), 10e18);
 
         _setSwapFeeModule(address(this));
+        _setOracleModule(address(this));
 
         _setupBalanceForUser(address(this), address(token0), 10e18);
 
         swapParams.swapTokenOut = address(token1);
         swapParams.isZeroToOne = true;
-        swapParams.swapContext.swapFeeModuleContext = abi.encode(100, new bytes(0));
+        swapParams.swapContext.swapFeeModuleContext = abi.encode(100, abi.encode('test'));
         swapParams.swapContext.externalContext = abi.encode(
-            ALMLiquidityQuote(true, false, 5e18, Math.mulDiv(10e18, 1e4, 1e4 + 100))
+            ALMLiquidityQuote(true, true, 5e18, Math.mulDiv(10e18, 1e4, 1e4 + 100))
         );
 
         // Half fee to pool manager.
         _setPoolManagerFeeBips(5000);
+
+        // Checks callback to ALM on swap end.
+        vm.expectCall(address(this), abi.encodeWithSelector(this.onSwapCallback.selector, true, 10e18, 5e18));
+
+        // Check callback to oracle.
+        vm.expectCall(
+            address(this),
+            abi.encodeWithSelector(
+                this.writeOracleUpdate.selector,
+                true,
+                10e18,
+                10e18 - Math.mulDiv(10e18, 1e4, 1e4 + 100),
+                5e18
+            )
+        );
+
+        // Check callback to swap fee module.
+        vm.expectCall(
+            address(this),
+            abi.encodeWithSelector(
+                this.callbackOnSwapEnd.selector,
+                10e18 - Math.mulDiv(10e18, 1e4, 1e4 + 100),
+                10e18,
+                5e18,
+                SwapFeeModuleData(100, abi.encode('test'))
+            )
+        );
+
         (amountInUsed, amountOut) = pool.swap(swapParams);
 
         // Check fee and reserve updates correctly.
@@ -786,6 +798,14 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
             (10e18 - Math.mulDiv(10e18, 1e4, 1e4 + 100)) / 2,
             'Pool manager1 fee not updated correctly'
         );
+    }
+
+    function test_swap_rebaseTokens() public {
+        address RECIPIENT = makeAddr('RECIPIENT');
+
+        SovereignPoolSwapParams memory swapParams;
+        swapParams.amountIn = 10e18;
+        swapParams.recipient = RECIPIENT;
 
         // Prepare new pool, but with rebase tokens.
         SovereignPoolConstructorArgs memory args = _generateDefaultConstructorArgs();
@@ -797,15 +817,15 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         pool = this.deploySovereignPool(protocolFactory, args);
 
-        _setReserves(0, 10e18);
         _setALM(address(this));
         _setPoolManagerFeeBips(5000);
         _setOracleModule(address(this));
-
-        _setupBalanceForUser(address(pool), address(token1), 10e18);
-
         _setSwapFeeModule(address(this));
 
+        uint256 snapshot = vm.snapshot();
+
+        _setReserves(0, 10e18);
+        _setupBalanceForUser(address(pool), address(token1), 10e18);
         _setupBalanceForUser(address(this), address(token0), 10e18);
 
         swapParams.swapTokenOut = address(token1);
@@ -851,9 +871,80 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
             )
         );
 
-        pool.swap(swapParams);
+        (uint256 amountInUsed, uint256 amountOut) = pool.swap(swapParams);
+
+        assertEq(amountInUsed, 10e18);
+        assertEq(amountOut, 5e18);
 
         _assertTokenBalance(token0, POOL_MANAGER, (10e18 - Math.mulDiv(10e18, 1e4, 1e4 + 100)) / 2);
+
+        // Do reverse swap and set pool manager to address(0) to make sure, fee is not transferred to zero address
+
+        vm.revertTo(snapshot);
+
+        _setPoolManager(ZERO_ADDRESS);
+        _setReserves(10e18, 0);
+        _setupBalanceForUser(address(pool), address(token0), 10e18);
+        _setupBalanceForUser(address(this), address(token1), 10e18);
+
+        swapParams.swapTokenOut = address(token0);
+        swapParams.isZeroToOne = false;
+        swapParams.isSwapCallback = true;
+        swapParams.swapContext.swapFeeModuleContext = abi.encode(100, abi.encode('test'));
+        swapParams.swapContext.swapCallbackContext = abi.encode(10e18 - 9);
+
+        swapParams.swapContext.externalContext = abi.encode(
+            ALMLiquidityQuote(true, true, 5e18, Math.mulDiv(10e18, 1e4, 1e4 + 100))
+        );
+
+        (amountInUsed, amountOut) = pool.swap(swapParams);
+        assertEq(amountInUsed, 10e18);
+        assertEq(amountOut, 5e18);
+
+        _assertTokenBalance(token0, ZERO_ADDRESS, 0);
+    }
+
+    function test_swap_verifierModule() public {
+        address RECIPIENT = makeAddr('RECIPIENT');
+
+        address SWAP_USER = makeAddr('SWAP');
+
+        SovereignPoolSwapParams memory swapParams;
+
+        swapParams.amountIn = 10e18;
+        swapParams.recipient = RECIPIENT;
+        swapParams.swapTokenOut = address(token0);
+
+        // Test with permission verifier.
+
+        SovereignPoolConstructorArgs memory args = _generateDefaultConstructorArgs();
+        args.verifierModule = address(this);
+
+        pool = this.deploySovereignPool(protocolFactory, args);
+        _addToContractsToApprove(address(pool));
+
+        _setALM(address(this));
+        _setReserves(10e18, 0);
+
+        swapParams.swapContext.externalContext = abi.encode(ALMLiquidityQuote(true, false, 5e18, 5e18));
+        _setupBalanceForUser(address(pool), address(token0), 10e18);
+        _setupBalanceForUser(SWAP_USER, address(token1), 5e18);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SovereignPool.SovereignPool___verifyPermission_onlyPermissionedAccess.selector,
+                RECIPIENT,
+                uint8(AccessType.SWAP)
+            )
+        );
+
+        vm.prank(RECIPIENT);
+        pool.swap(swapParams);
+
+        vm.prank(SWAP_USER);
+        (uint256 amountInUsed, uint256 amountOut) = pool.swap(swapParams);
+        assertEq(amountInUsed, 5e18);
+        assertEq(amountOut, 5e18);
     }
 
     function test_swap_sovereignVault() public {

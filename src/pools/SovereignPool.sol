@@ -154,6 +154,12 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
     uint256 public immutable defaultSwapFeeBips;
 
     /**
+        @notice Verifier Module (Optional).
+        @dev Verifies custom authentication conditions on deposits, withdrawals and swaps. 
+     */
+    IVerifierModule private immutable _verifierModule;
+
+    /**
         @notice Tokens supported by this pool.
         @dev These are not necessarily the only tokens
              available to trade against this pool:
@@ -246,12 +252,6 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
      */
     uint256 private _reserve0;
     uint256 private _reserve1;
-
-    /**
-        @notice Verifier Module (Optional).
-        @dev Verifies custom authentication conditions on deposits, withdrawals and swaps. 
-     */
-    IVerifierModule private _verifierModule;
 
     /**
         @notice Sovereign Oracle Module (Optional).
@@ -1011,7 +1011,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
             if (amountInReceived != amountInUsed) revert SovereignPool___handleTokenInOnSwap_invalidTokenInAmount();
         }
 
-        if (isTokenInRebase && sovereignVault == address(this)) {
+        if (isTokenInRebase && sovereignVault == address(this) && poolManager != address(0)) {
             // We transfer manager fee to `poolManager`
             uint256 poolManagerFee = Math.mulDiv(effectiveFee, poolManagerFeeBips, 1e4);
             if (poolManagerFee > 0) {
