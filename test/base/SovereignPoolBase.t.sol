@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { console } from 'forge-std/console.sol';
-
 import { ERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import { IERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import { SafeERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
@@ -251,19 +249,19 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
         vm.store(address(pool), bytes32(uint256(10)), bytes32(reserve1));
     }
 
+    function _setPoolManager(address poolManager) internal {
+        vm.store(address(pool), bytes32(uint256(3)), bytes32(uint256(uint160(poolManager))));
+    }
+
     function _setALM(address alm) internal {
         vm.store(address(pool), bytes32(uint256(1)), bytes32(uint256(uint160(alm))));
     }
 
-    function _setVerifierModule(address verifierModule) internal {
-        vm.store(address(pool), bytes32(uint256(11)), bytes32(uint256(uint160(verifierModule))));
-    }
-
     function _setOracleModule(address oracleModule) internal {
-        vm.store(address(pool), bytes32(uint256(12)), bytes32(uint256(uint160(oracleModule))));
+        vm.store(address(pool), bytes32(uint256(11)), bytes32(uint256(uint160(oracleModule))));
     }
 
     function _setSwapFeeModule(address swapFeeModule) internal {
-        vm.store(address(pool), bytes32(uint256(13)), bytes32(uint256(uint160(swapFeeModule))));
+        vm.store(address(pool), bytes32(uint256(12)), bytes32(uint256(uint160(swapFeeModule))));
     }
 }
