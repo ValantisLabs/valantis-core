@@ -12,8 +12,10 @@ import {
 } from 'src/pools/structs/SovereignPoolStructs.sol';
 import { IFlashBorrower } from 'src/pools/interfaces/IFlashBorrower.sol';
 import { IValantisPool } from 'src/pools/interfaces/IValantisPool.sol';
-import { SwapFeeModuleData } from 'src/swap-fee-modules/interfaces/ISwapFeeModule.sol';
+import { ISovereignSwapFeeModule, SwapFeeModuleData } from 'src/swap-fee-modules/interfaces/ISwapFeeModule.sol';
 import { ISovereignVaultMinimal } from 'src/pools/interfaces/ISovereignVaultMinimal.sol';
+import { ISovereignALM } from 'src/ALM/interfaces/ISovereignALM.sol';
+import { ISovereignOracle } from 'src/oracles/interfaces/ISovereignOracle.sol';
 
 import { SovereignPoolBase } from 'test/base/SovereignPoolBase.t.sol';
 import { MockSovereignVaultHelper } from 'test/helpers/MockSovereignVaultHelper.sol';
@@ -845,13 +847,13 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         swapParams.swapContext.swapCallbackContext = abi.encode(10e18 - 9);
 
         // Checks callback to ALM on swap end.
-        vm.expectCall(address(this), abi.encodeWithSelector(this.onSwapCallback.selector, true, 10e18, 5e18));
+        vm.expectCall(address(this), abi.encodeWithSelector(ISovereignALM.onSwapCallback.selector, true, 10e18, 5e18));
 
         // Check callback to oracle.
         vm.expectCall(
             address(this),
             abi.encodeWithSelector(
-                this.writeOracleUpdate.selector,
+                ISovereignOracle.writeOracleUpdate.selector,
                 true,
                 10e18,
                 10e18 - Math.mulDiv(10e18, 1e4, 1e4 + 100),
@@ -863,7 +865,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         vm.expectCall(
             address(this),
             abi.encodeWithSelector(
-                this.callbackOnSwapEnd.selector,
+                ISovereignSwapFeeModule.callbackOnSwapEnd.selector,
                 10e18 - Math.mulDiv(10e18, 1e4, 1e4 + 100),
                 10e18,
                 5e18,

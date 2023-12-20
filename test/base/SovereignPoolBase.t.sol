@@ -106,20 +106,24 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
 
     // Verifier Module callback
     function verify(
-        address _user,
-        bytes calldata,
+        address user,
+        bytes calldata data,
         uint8 accessType
     ) external returns (bool success, bytes memory returnData) {
-        if (accessType == uint8(AccessType.SWAP) && _user == makeAddr('SWAP')) {
+        if (accessType == uint8(AccessType.SWAP) && user == makeAddr('SWAP')) {
             return (true, new bytes(0));
         }
 
-        if (accessType == uint8(AccessType.DEPOSIT) && _user == makeAddr('DEPOSIT')) {
+        if (accessType == uint8(AccessType.DEPOSIT) && user == makeAddr('DEPOSIT')) {
             return (true, new bytes(0));
         }
 
-        if (accessType == uint8(AccessType.WITHDRAW) && _user == makeAddr('WITHDRAW')) {
+        if (accessType == uint8(AccessType.WITHDRAW) && user == makeAddr('WITHDRAW')) {
             return (true, new bytes(0));
+        }
+
+        if (data.length > 0) {
+            (success) = abi.decode(data, (bool));
         }
     }
 
@@ -150,12 +154,6 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
 
         _setupBalanceForUser(address(pool), _tokenIn, amountIn);
     }
-
-    function onSwapCallback(bool, uint256, uint256) external {}
-
-    function writeOracleUpdate(bool, uint256, uint256, uint256) external {}
-
-    function callbackOnSwapEnd(uint256, uint256, uint256, SwapFeeModuleData calldata) external {}
 
     function _generateDefaultConstructorArgs()
         internal
@@ -225,6 +223,16 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
         vm.prank(POOL_MANAGER);
         pool.setALM(almAddress);
         _addToContractsToApprove(almAddress);
+    }
+
+    function _depositLiquidity(
+        uint256 amount0,
+        uint256 amount1,
+        address user,
+        bytes memory verificationContext,
+        bytes memory depositData
+    ) internal returns (uint256, uint256) {
+        return pool.depositLiquidity(amount0, amount1, user, verificationContext, depositData);
     }
 
     // overwrite storage value helper functions

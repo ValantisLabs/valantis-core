@@ -23,6 +23,8 @@ contract Base is Test {
     ERC20 internal token0;
     ERC20 internal token1;
 
+    fallback() external {}
+
     function _setupBase() internal {
         token0 = new ERC20('Token 0', 'TOKEN0');
         token1 = new ERC20('Token 1', 'TOKEN1');
