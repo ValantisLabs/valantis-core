@@ -50,6 +50,8 @@ contract SovereignPoolFuzz is SovereignPoolBase {
         pool = this.deploySovereignPool(protocolFactory, args);
         _addToContractsToApprove(address(pool));
 
+        if (sovereignVault) MockSovereignVaultHelper.setPool(args.sovereignVault, address(pool));
+
         _;
     }
 
@@ -151,9 +153,63 @@ contract SovereignPoolFuzz is SovereignPoolBase {
         fuzzParams.amount1 = bound(fuzzParams.amount1, 0, 1e26);
 
         address USER = _randomUser();
+
+        // Set this address as ALM
+        _setALM(address(this));
+
+        _setReservesForPool(fuzzParams.reserve0, fuzzParams.reserve1);
+
+        if (pool.verifierModule() != address(0)) {
+            vm.expectRevert(
+                abi.encodeWithSelector(
+                    SovereignPool.SovereignPool___verifyPermission_onlyPermissionedAccess.selector,
+                    USER,
+                    uint8(AccessType.WITHDRAW)
+                )
+            );
+
+            pool.withdrawLiquidity(fuzzParams.amount0, fuzzParams.amount1, USER, USER, abi.encode(false));
+        }
+
+        (uint256 preReserve0, uint256 preReserve1) = pool.getReserves();
+
+        bool isRevert;
+
+        if (pool.sovereignVault() == address(pool) && fuzzParams.amount0 > preReserve0) {
+            isRevert = true;
+            vm.expectRevert(SovereignPool.SovereignPool__withdrawLiquidity_insufficientReserve0.selector);
+        } else if (pool.sovereignVault() == address(pool) && fuzzParams.amount1 > preReserve1) {
+            isRevert = true;
+            vm.expectRevert(SovereignPool.SovereignPool__withdrawLiquidity_insufficientReserve1.selector);
+        } else if (pool.sovereignVault() != address(pool)) {
+            _setupBalanceForUser(address(pool), address(token0), fuzzParams.amount0);
+            _setupBalanceForUser(address(pool), address(token1), fuzzParams.amount1);
+
+            if (!pool.isToken0Rebase() && fuzzParams.amount0 > 0) {
+                isRevert = true;
+                vm.expectRevert(SovereignPool.SovereignPool__withdrawLiquidity_insufficientReserve0.selector);
+            } else if (!pool.isToken1Rebase() && fuzzParams.amount1 > 0) {
+                isRevert = true;
+                vm.expectRevert(SovereignPool.SovereignPool__withdrawLiquidity_insufficientReserve1.selector);
+            }
+        }
+
+        pool.withdrawLiquidity(fuzzParams.amount0, fuzzParams.amount1, USER, USER, abi.encode(true));
+
+        if (isRevert) {
+            return;
+        }
+
+        if (pool.sovereignVault() != address(pool)) {
+            (uint256 postReserve0, uint256 postReserve1) = pool.getReserves();
+
+            assertEq(preReserve0, postReserve0);
+            assertEq(preReserve1, postReserve1);
+        } else {
+            (uint256 postReserve0, uint256 postReserve1) = pool.getReserves();
+
+            assertEq(postReserve0, preReserve0 - fuzzParams.amount0);
+            assertEq(postReserve1, preReserve1 - fuzzParams.amount1);
+        }
     }
-
-    // function test_withdraw()
-
-    // function test_swap()
 }

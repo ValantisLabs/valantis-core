@@ -752,13 +752,13 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         _setPoolManagerFeeBips(5000);
 
         // Checks callback to ALM on swap end.
-        vm.expectCall(address(this), abi.encodeWithSelector(this.onSwapCallback.selector, true, 10e18, 5e18));
+        vm.expectCall(address(this), abi.encodeWithSelector(ISovereignALM.onSwapCallback.selector, true, 10e18, 5e18));
 
         // Check callback to oracle.
         vm.expectCall(
             address(this),
             abi.encodeWithSelector(
-                this.writeOracleUpdate.selector,
+                ISovereignOracle.writeOracleUpdate.selector,
                 true,
                 10e18,
                 10e18 - Math.mulDiv(10e18, 1e4, 1e4 + 100),
@@ -770,7 +770,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         vm.expectCall(
             address(this),
             abi.encodeWithSelector(
-                this.callbackOnSwapEnd.selector,
+                ISovereignSwapFeeModule.callbackOnSwapEnd.selector,
                 10e18 - Math.mulDiv(10e18, 1e4, 1e4 + 100),
                 10e18,
                 5e18,

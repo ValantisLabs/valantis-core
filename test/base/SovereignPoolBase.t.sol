@@ -235,6 +235,28 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
         return pool.depositLiquidity(amount0, amount1, user, verificationContext, depositData);
     }
 
+    function _setReservesForPool(uint256 reserve0, uint256 reserve1) internal {
+        if (pool.sovereignVault() != address(pool)) {
+            _setupBalanceForUser(pool.sovereignVault(), address(token0), reserve0);
+            _setupBalanceForUser(pool.sovereignVault(), address(token1), reserve1);
+            return;
+        }
+
+        if (pool.isToken0Rebase()) {
+            _setupBalanceForUser(address(pool), address(token0), reserve0);
+        } else {
+            vm.store(address(pool), bytes32(uint256(9)), bytes32(reserve0));
+            _setupBalanceForUser(address(pool), address(token0), reserve0);
+        }
+
+        if (pool.isToken1Rebase()) {
+            _setupBalanceForUser(address(pool), address(token1), reserve1);
+        } else {
+            vm.store(address(pool), bytes32(uint256(10)), bytes32(reserve1));
+            _setupBalanceForUser(address(pool), address(token1), reserve1);
+        }
+    }
+
     // overwrite storage value helper functions
     // to get corresponding slots use `forge inspect SovereignPool storageLayout --pretty`
 
