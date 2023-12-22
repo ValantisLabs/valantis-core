@@ -6,7 +6,7 @@ import { IERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.
 import { SafeERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 
 import { ALMLiquidityQuoteInput, ALMLiquidityQuote } from 'src/ALM/structs/SovereignALMStructs.sol';
-import { SovereignPoolConstructorArgs } from 'src/pools/structs/SovereignPoolStructs.sol';
+import { SovereignPoolConstructorArgs, SovereignPoolSwapParams } from 'src/pools/structs/SovereignPoolStructs.sol';
 import { SovereignPool } from 'src/pools/SovereignPool.sol';
 import { ProtocolFactory } from 'src/protocol-factory/ProtocolFactory.sol';
 import { SwapFeeModuleData } from 'src/swap-fee-modules/interfaces/ISwapFeeModule.sol';
@@ -77,8 +77,6 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
         if (op == 0) {
             // return incorrect hash
             return bytes32(uint256(0));
-        } else if (op == 1) {
-            // return without giving approval to pull out token
         } else if (op == 2) {
             // Give correct approval
             IERC20(token).safeApprove(msg.sender, amount);
@@ -87,7 +85,7 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
             IERC20(token).safeApprove(msg.sender, amount);
 
             vm.startPrank(address(pool));
-            token0.safeTransfer(address(1), token0.balanceOf(address(pool)));
+            IERC20(token).safeTransfer(address(1), IERC20(token).balanceOf(address(pool)));
             vm.stopPrank();
         }
 
@@ -150,9 +148,11 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
     }
 
     function sovereignPoolSwapCallback(address _tokenIn, uint256, bytes calldata _swapCallbackContext) external {
-        uint256 amountIn = abi.decode(_swapCallbackContext, (uint256));
+        (address vault, uint256 amountIn) = abi.decode(_swapCallbackContext, (address, uint256));
 
-        _setupBalanceForUser(address(pool), _tokenIn, amountIn);
+        _setupBalanceForUser(address(this), _tokenIn, amountIn);
+
+        IERC20(_tokenIn).transfer(vault, amountIn);
     }
 
     function _generateDefaultConstructorArgs()
@@ -254,6 +254,61 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
         } else {
             vm.store(address(pool), bytes32(uint256(10)), bytes32(reserve1));
             _setupBalanceForUser(address(pool), address(token1), reserve1);
+        }
+    }
+
+    function _assertPostReserves(
+        bool isZeroToOne,
+        uint256 preReserve0,
+        uint256 preReserve1,
+        uint256 amountInUsed,
+        uint256 amountOut
+    ) internal {
+        (uint256 reserve0, uint256 reserve1) = pool.getReserves();
+
+        if (isZeroToOne) {
+            assertEq(reserve0, preReserve0 + amountInUsed, 'Invalid Reserve0');
+            assertEq(reserve1, preReserve1 - amountOut, 'Invalid Reserve1');
+        } else {
+            assertEq(reserve1, preReserve1 + amountInUsed, 'Invalid Reserve1');
+            assertEq(reserve0, preReserve0 - amountOut, 'Invalid Reserve0');
+        }
+    }
+
+    function _expectTokenInTransferCall(
+        SovereignPoolSwapParams memory swapParams,
+        address from,
+        uint256 amountIn
+    ) internal {
+        if (!swapParams.isSwapCallback) {
+            vm.expectCall(
+                swapParams.isZeroToOne ? address(token0) : address(token1),
+                abi.encodeWithSelector(IERC20.transferFrom.selector, from, pool.sovereignVault(), amountIn)
+            );
+        } else {
+            vm.expectCall(
+                swapParams.isZeroToOne ? address(token0) : address(token1),
+                abi.encodeWithSelector(IERC20.transfer.selector, pool.sovereignVault(), amountIn)
+            );
+        }
+    }
+
+    function _expectTokenOutTransferCall(SovereignPoolSwapParams memory swapParams, uint256 amountOut) internal {
+        if (pool.sovereignVault() != address(pool)) {
+            vm.expectCall(
+                swapParams.swapTokenOut,
+                abi.encodeWithSelector(
+                    IERC20.transferFrom.selector,
+                    pool.sovereignVault(),
+                    swapParams.recipient,
+                    amountOut
+                )
+            );
+        } else {
+            vm.expectCall(
+                swapParams.swapTokenOut,
+                abi.encodeWithSelector(IERC20.transfer.selector, swapParams.recipient, amountOut)
+            );
         }
     }
 

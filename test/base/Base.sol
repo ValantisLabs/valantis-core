@@ -29,6 +29,9 @@ contract Base is Test {
         token0 = new ERC20('Token 0', 'TOKEN0');
         token1 = new ERC20('Token 1', 'TOKEN1');
 
+        vm.label(address(token0), 'TOKEN0');
+        vm.label(address(token1), 'TOKEN1');
+
         signers.push(makeAddr('USER 1'));
         signers.push(makeAddr('USER 2'));
         signers.push(makeAddr('USER 3'));
@@ -39,6 +42,11 @@ contract Base is Test {
         signers.push(makeAddr('USER 8'));
         signers.push(makeAddr('USER 9'));
         signers.push(makeAddr('USER 10'));
+    }
+
+    function _deployToken(string memory name, string memory symbol) internal returns (address token) {
+        token = address(new ERC20(name, symbol));
+        vm.label(token, symbol);
     }
 
     function _deployRebaseToken(bool isTokenZero) internal {

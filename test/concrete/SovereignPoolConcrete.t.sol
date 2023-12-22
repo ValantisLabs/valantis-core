@@ -673,7 +673,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         // When we want funds to be transferred through callback.
         swapParams.isSwapCallback = true;
         swapParams.swapContext.externalContext = abi.encode(ALMLiquidityQuote(true, false, 5e18, 5e18));
-        swapParams.swapContext.swapCallbackContext = abi.encode(5e18 - 1);
+        swapParams.swapContext.swapCallbackContext = abi.encode(pool.sovereignVault(), 5e18 - 1);
 
         // Amount transferred in is less than amountIn requested.
         vm.expectRevert(SovereignPool.SovereignPool___handleTokenInOnSwap_invalidTokenInAmount.selector);
@@ -834,7 +834,10 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         swapParams.isZeroToOne = true;
         swapParams.isSwapCallback = true;
         swapParams.swapContext.swapFeeModuleContext = abi.encode(100, abi.encode('test'));
-        swapParams.swapContext.swapCallbackContext = abi.encode(Math.mulDiv(10e18, 1e4, 1e4 + 100) - 11);
+        swapParams.swapContext.swapCallbackContext = abi.encode(
+            pool.sovereignVault(),
+            Math.mulDiv(10e18, 1e4, 1e4 + 100) - 11
+        );
 
         swapParams.swapContext.externalContext = abi.encode(
             ALMLiquidityQuote(true, true, 5e18, Math.mulDiv(10e18, 1e4, 1e4 + 100))
@@ -844,7 +847,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         vm.expectRevert(SovereignPool.SovereignPool___handleTokenInOnSwap_excessiveTokenInErrorOnTransfer.selector);
         pool.swap(swapParams);
 
-        swapParams.swapContext.swapCallbackContext = abi.encode(10e18 - 9);
+        swapParams.swapContext.swapCallbackContext = abi.encode(pool.sovereignVault(), 10e18 - 9);
 
         // Checks callback to ALM on swap end.
         vm.expectCall(address(this), abi.encodeWithSelector(ISovereignALM.onSwapCallback.selector, true, 10e18, 5e18));
@@ -893,7 +896,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         swapParams.isZeroToOne = false;
         swapParams.isSwapCallback = true;
         swapParams.swapContext.swapFeeModuleContext = abi.encode(100, abi.encode('test'));
-        swapParams.swapContext.swapCallbackContext = abi.encode(10e18 - 9);
+        swapParams.swapContext.swapCallbackContext = abi.encode(pool.sovereignVault(), 10e18 - 9);
 
         swapParams.swapContext.externalContext = abi.encode(
             ALMLiquidityQuote(true, true, 5e18, Math.mulDiv(10e18, 1e4, 1e4 + 100))
