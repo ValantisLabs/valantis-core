@@ -12,8 +12,10 @@ import {
 } from 'src/pools/structs/SovereignPoolStructs.sol';
 import { IFlashBorrower } from 'src/pools/interfaces/IFlashBorrower.sol';
 import { IValantisPool } from 'src/pools/interfaces/IValantisPool.sol';
-import { SwapFeeModuleData } from 'src/swap-fee-modules/interfaces/ISwapFeeModule.sol';
+import { ISovereignSwapFeeModule, SwapFeeModuleData } from 'src/swap-fee-modules/interfaces/ISwapFeeModule.sol';
 import { ISovereignVaultMinimal } from 'src/pools/interfaces/ISovereignVaultMinimal.sol';
+import { ISovereignALM } from 'src/ALM/interfaces/ISovereignALM.sol';
+import { ISovereignOracle } from 'src/oracles/interfaces/ISovereignOracle.sol';
 
 import { SovereignPoolBase } from 'test/base/SovereignPoolBase.t.sol';
 import { MockSovereignVaultHelper } from 'test/helpers/MockSovereignVaultHelper.sol';
@@ -671,7 +673,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         // When we want funds to be transferred through callback.
         swapParams.isSwapCallback = true;
         swapParams.swapContext.externalContext = abi.encode(ALMLiquidityQuote(true, false, 5e18, 5e18));
-        swapParams.swapContext.swapCallbackContext = abi.encode(5e18 - 1);
+        swapParams.swapContext.swapCallbackContext = abi.encode(pool.sovereignVault(), 5e18 - 1);
 
         // Amount transferred in is less than amountIn requested.
         vm.expectRevert(SovereignPool.SovereignPool___handleTokenInOnSwap_invalidTokenInAmount.selector);
@@ -750,13 +752,13 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         _setPoolManagerFeeBips(5000);
 
         // Checks callback to ALM on swap end.
-        vm.expectCall(address(this), abi.encodeWithSelector(this.onSwapCallback.selector, true, 10e18, 5e18));
+        vm.expectCall(address(this), abi.encodeWithSelector(ISovereignALM.onSwapCallback.selector, true, 10e18, 5e18));
 
         // Check callback to oracle.
         vm.expectCall(
             address(this),
             abi.encodeWithSelector(
-                this.writeOracleUpdate.selector,
+                ISovereignOracle.writeOracleUpdate.selector,
                 true,
                 10e18,
                 10e18 - Math.mulDiv(10e18, 1e4, 1e4 + 100),
@@ -768,7 +770,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         vm.expectCall(
             address(this),
             abi.encodeWithSelector(
-                this.callbackOnSwapEnd.selector,
+                ISovereignSwapFeeModule.callbackOnSwapEnd.selector,
                 10e18 - Math.mulDiv(10e18, 1e4, 1e4 + 100),
                 10e18,
                 5e18,
@@ -832,7 +834,10 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         swapParams.isZeroToOne = true;
         swapParams.isSwapCallback = true;
         swapParams.swapContext.swapFeeModuleContext = abi.encode(100, abi.encode('test'));
-        swapParams.swapContext.swapCallbackContext = abi.encode(Math.mulDiv(10e18, 1e4, 1e4 + 100) - 11);
+        swapParams.swapContext.swapCallbackContext = abi.encode(
+            pool.sovereignVault(),
+            Math.mulDiv(10e18, 1e4, 1e4 + 100) - 11
+        );
 
         swapParams.swapContext.externalContext = abi.encode(
             ALMLiquidityQuote(true, true, 5e18, Math.mulDiv(10e18, 1e4, 1e4 + 100))
@@ -842,16 +847,16 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         vm.expectRevert(SovereignPool.SovereignPool___handleTokenInOnSwap_excessiveTokenInErrorOnTransfer.selector);
         pool.swap(swapParams);
 
-        swapParams.swapContext.swapCallbackContext = abi.encode(10e18 - 9);
+        swapParams.swapContext.swapCallbackContext = abi.encode(pool.sovereignVault(), 10e18 - 9);
 
         // Checks callback to ALM on swap end.
-        vm.expectCall(address(this), abi.encodeWithSelector(this.onSwapCallback.selector, true, 10e18, 5e18));
+        vm.expectCall(address(this), abi.encodeWithSelector(ISovereignALM.onSwapCallback.selector, true, 10e18, 5e18));
 
         // Check callback to oracle.
         vm.expectCall(
             address(this),
             abi.encodeWithSelector(
-                this.writeOracleUpdate.selector,
+                ISovereignOracle.writeOracleUpdate.selector,
                 true,
                 10e18,
                 10e18 - Math.mulDiv(10e18, 1e4, 1e4 + 100),
@@ -863,7 +868,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         vm.expectCall(
             address(this),
             abi.encodeWithSelector(
-                this.callbackOnSwapEnd.selector,
+                ISovereignSwapFeeModule.callbackOnSwapEnd.selector,
                 10e18 - Math.mulDiv(10e18, 1e4, 1e4 + 100),
                 10e18,
                 5e18,
@@ -891,7 +896,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         swapParams.isZeroToOne = false;
         swapParams.isSwapCallback = true;
         swapParams.swapContext.swapFeeModuleContext = abi.encode(100, abi.encode('test'));
-        swapParams.swapContext.swapCallbackContext = abi.encode(10e18 - 9);
+        swapParams.swapContext.swapCallbackContext = abi.encode(pool.sovereignVault(), 10e18 - 9);
 
         swapParams.swapContext.externalContext = abi.encode(
             ALMLiquidityQuote(true, true, 5e18, Math.mulDiv(10e18, 1e4, 1e4 + 100))
