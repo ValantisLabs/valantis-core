@@ -8,7 +8,7 @@ import { SafeERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/util
 import { ISovereignALM } from 'src/ALM/interfaces/ISovereignALM.sol';
 import { ALMLiquidityQuoteInput, ALMLiquidityQuote } from 'src/ALM/structs/SovereignALMStructs.sol';
 import { ISovereignPool } from 'src/pools/interfaces/ISovereignPool.sol';
-import { MockSovereignVault } from 'test/mocks/MockSovereignVault.sol';
+import { MockSovereignVault } from 'src/mocks/MockSovereignVault.sol';
 
 contract MockSovereignALM is ISovereignALM {
     using SafeERC20 for IERC20;

@@ -28,10 +28,13 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
         WITHDRAW
     }
 
+    /************************************************
+     *  STRUCTS
+     ***********************************************/
+
     struct TokenData {
         bool isTokenRebase;
         uint256 tokenAbsErrorTolerance;
-        uint256 tokenMinAmount;
     }
 
     struct CustomConstructorArgsParams {
@@ -171,8 +174,6 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
             false,
             0,
             0,
-            0,
-            0,
             0
         );
     }
@@ -198,13 +199,11 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
         if (keccak256(abi.encode(emptyData)) != keccak256(abi.encode(customParams.token0Data))) {
             constructorArgs.isToken0Rebase = customParams.token0Data.isTokenRebase;
             constructorArgs.token0AbsErrorTolerance = customParams.token0Data.tokenAbsErrorTolerance;
-            constructorArgs.token0MinAmount = customParams.token0Data.tokenMinAmount;
         }
 
         if (keccak256(abi.encode(emptyData)) != keccak256(abi.encode(customParams.token1Data))) {
             constructorArgs.isToken1Rebase = customParams.token1Data.isTokenRebase;
             constructorArgs.token1AbsErrorTolerance = customParams.token1Data.tokenAbsErrorTolerance;
-            constructorArgs.token1MinAmount = customParams.token1Data.tokenMinAmount;
         }
     }
 

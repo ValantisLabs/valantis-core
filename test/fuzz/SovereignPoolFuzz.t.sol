@@ -23,40 +23,9 @@ import { MockSovereignVaultHelper } from 'test/helpers/MockSovereignVaultHelper.
 import { Utils } from 'test/helpers/Utils.sol';
 
 contract SovereignPoolFuzz is SovereignPoolBase {
-    // interpret flag by getting bit value at i-th index
-    // 0 -> sovereign vault
-    // 1 -> verifier module
-    // 2 -> token0Rebase
-    // 3 -> token1Rebase
-    modifier setupPool(uint8 flags) {
-        bool sovereignVault = (flags & (1 << 0)) != 0;
-        bool verifierModule = (flags & (1 << 1)) != 0;
-        bool token0Rebase = (flags & (1 << 2)) != 0;
-        bool token1Rebase = (flags & (1 << 3)) != 0;
-
-        SovereignPoolConstructorArgs memory args = _generateDefaultConstructorArgs();
-        if (sovereignVault) args.sovereignVault = MockSovereignVaultHelper.deploySovereignVault();
-        if (verifierModule) args.verifierModule = address(this);
-
-        if (token0Rebase) {
-            args.isToken0Rebase = true;
-            args.token0AbsErrorTolerance = (flags | (1 << 4)) % 11;
-        }
-
-        if (token1Rebase) {
-            args.isToken1Rebase = true;
-            args.token1AbsErrorTolerance = (flags | (1 << 5)) % 11;
-        }
-
-        args.defaultSwapFeeBips = (uint256(flags) * (1 << 13)) % 10_000;
-
-        pool = this.deploySovereignPool(protocolFactory, args);
-        _addToContractsToApprove(address(pool));
-
-        if (sovereignVault) MockSovereignVaultHelper.setPool(args.sovereignVault, address(pool));
-
-        _;
-    }
+    /************************************************
+     *  STRUCTS
+     ***********************************************/
 
     struct DepositFuzzParams {
         uint256 amount0;
@@ -92,6 +61,19 @@ contract SovereignPoolFuzz is SovereignPoolBase {
         uint256 reserve1;
         uint8 flags;
     }
+
+    /************************************************
+     *  MODIFIERS
+     ***********************************************/
+
+    modifier setupPool(uint8 flags) {
+        _setupRandomPool(flags);
+        _;
+    }
+
+    /************************************************
+     *  Test public functions
+     ***********************************************/
 
     function test_deposit(DepositFuzzParams memory fuzzParams) public setupPool(fuzzParams.flags) {
         fuzzParams.amount0 = bound(fuzzParams.amount0, 0, 1e26);
@@ -257,7 +239,9 @@ contract SovereignPoolFuzz is SovereignPoolBase {
         } else if (fuzzParams.op == 0) {
             vm.expectRevert(IValantisPool.ValantisPool__flashloan_callbackFailed.selector);
         } else if (fuzzParams.op == 3) {
-            vm.expectRevert(IValantisPool.ValantisPool__flashLoan_flashLoanNotRepaid.selector);
+            if (fuzzParams.amount < (fuzzParams.isTokenZero ? fuzzParams.reserve0 : fuzzParams.reserve1)) {
+                vm.expectRevert(IValantisPool.ValantisPool__flashLoan_flashLoanNotRepaid.selector);
+            }
         } else if (fuzzParams.op == 2) {
             /// Passing condition
         } else {
@@ -428,6 +412,10 @@ contract SovereignPoolFuzz is SovereignPoolBase {
         }
     }
 
+    /************************************************
+     *  INTERNAL HELPER FUNCTIONS
+     ***********************************************/
+
     function _checkLiquidityQuote(SwapFuzzParams memory fuzzParams, bool isZeroToOne) internal view returns (bool) {
         if (pool.sovereignVault() == address(pool)) {
             if (isZeroToOne && fuzzParams.amountOut > fuzzParams.reserve1) {
@@ -448,5 +436,38 @@ contract SovereignPoolFuzz is SovereignPoolBase {
         }
 
         return true;
+    }
+
+    // interpret flag by getting bit value at i-th index
+    // 0 -> sovereign vault
+    // 1 -> verifier module
+    // 2 -> token0Rebase
+    // 3 -> token1Rebase
+    function _setupRandomPool(uint8 flags) internal {
+        bool sovereignVault = (flags & (1 << 0)) != 0;
+        bool verifierModule = (flags & (1 << 1)) != 0;
+        bool token0Rebase = (flags & (1 << 2)) != 0;
+        bool token1Rebase = (flags & (1 << 3)) != 0;
+
+        SovereignPoolConstructorArgs memory args = _generateDefaultConstructorArgs();
+        if (sovereignVault) args.sovereignVault = MockSovereignVaultHelper.deploySovereignVault();
+        if (verifierModule) args.verifierModule = address(this);
+
+        if (token0Rebase) {
+            args.isToken0Rebase = true;
+            args.token0AbsErrorTolerance = (flags | (1 << 4)) % 11;
+        }
+
+        if (token1Rebase) {
+            args.isToken1Rebase = true;
+            args.token1AbsErrorTolerance = (flags | (1 << 5)) % 11;
+        }
+
+        args.defaultSwapFeeBips = (uint256(flags) * (1 << 13)) % 10_000;
+
+        pool = this.deploySovereignPool(protocolFactory, args);
+        _addToContractsToApprove(address(pool));
+
+        if (sovereignVault) MockSovereignVaultHelper.setPool(args.sovereignVault, address(pool));
     }
 }
