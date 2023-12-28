@@ -1,66 +1,70 @@
-## Foundry
+# Valantis
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Implementation of the Valantis Core smart contracts in Solidity.
 
-Foundry consists of:
+## Setting up Foundry
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+We use Foundry as our Solidity development framework. See [here](https://book.getfoundry.sh/getting-started/installation) for installation instructions, docs and examples.
 
-## Documentation
+Once installed, build the project:
 
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
-
-```shell
-$ forge build
+```
+forge build
 ```
 
-### Test
+Install dependencies:
 
-```shell
-$ forge test
+```
+forge install && yarn install
 ```
 
-### Format
+Tests:
 
-```shell
-$ forge fmt
+To run foundry tests which included concrete tests and fuzz tests:
+
+```
+forge test
 ```
 
-### Gas Snapshots
+To run integration tests, first copy `.env.example` to `.env` :
 
-```shell
-$ forge snapshot
+```
+cp .env.example .env
+npx hardhat test
 ```
 
-### Anvil
+Docs:
 
-```shell
-$ anvil
+```
+forge doc --serve --port 8080
 ```
 
-### Deploy
+## Folder structure description
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+### lib:
+
+Contains all smart contract external dependencies, installed via Foundry as git submodules.
+
+### src
+
+All relevant contracts to be audited are in src folder (excluding `/mocks` folders). Number of lines of code:
+
+```
+cloc src --not-match-d=mocks
 ```
 
-### Cast
+**ALM:** Liquidity Module (LM) implementations, which are custom DEX logic contracts written in a modular way. It containes structs and interface which will need to be implemented by ALM.
 
-```shell
-$ cast <subcommand>
-```
+**governance:** Contracts which are relevant in the context of the Valantis DAO, token, Gauges, Governance Escrow and its middlewares, and token emission mechanisms to eligible pools and ALMs. This is described in more detail in the white-paper. Currently contains only interface for AuctionController.
 
-### Help
+**libraries:** Various helper libraries used in other folders.
 
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+**oracles:** Contains interface for Oracle which can be implemented to be plugged in Sovereign Pool
+
+**pools:** Implementation of Sovereign pool, the core backbone of Valantis that hosts all modules, including LM, Swap Fee and Oracle modules.
+
+**protocol-factory:** Holds the official addresses of the most important core contract factories in the protocol, including: Universal and Sovereign Pool factories, LM factories (one for each LM design), Swap Fee Module factories, Universal and Sovereign Oracle factories, Universal and Sovereign Gauge factories, etc, as well as respective deployments from within those factories. Valantis DAO will be able to add or remove certain addresses in this whitelist.
+
+**swap-fee-modules:** Swap Fee module interface, which can be implemented and then plugged into Sovereign pools. Only contains a swap fee module whose fixed swap fee is configurable by a designated address.
+
+**utils:** Utils contracts which can be extended or used as library by main contracts
