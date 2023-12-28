@@ -2,8 +2,7 @@
 pragma solidity 0.8.19;
 
 import { IValantisDeployer } from 'src/protocol-factory/interfaces/IValantisDeployer.sol';
-
-import { MockSovereignALM } from 'test/mocks/MockSovereignALM.sol';
+import { MockSovereignALM } from 'src/mocks/MockSovereignALM.sol';
 
 contract MockSovereignALMFactory is IValantisDeployer {
     /************************************************

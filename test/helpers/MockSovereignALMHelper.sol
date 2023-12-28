@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { MockSovereignALMFactory } from 'test/mocks/MockSovereignALMFactory.sol';
-import { MockSovereignALM } from 'test/mocks/MockSovereignALM.sol';
+import { MockSovereignALMFactory } from 'src/mocks/MockSovereignALMFactory.sol';
+import { MockSovereignALM } from 'src/mocks/MockSovereignALM.sol';
 import { ALMLiquidityQuote } from 'src/ALM/structs/SovereignALMStructs.sol';
 
 library MockSovereignALMHelper {

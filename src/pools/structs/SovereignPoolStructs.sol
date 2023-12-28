@@ -16,8 +16,6 @@ struct SovereignPoolConstructorArgs {
     bool isToken1Rebase;
     uint256 token0AbsErrorTolerance;
     uint256 token1AbsErrorTolerance;
-    uint256 token0MinAmount;
-    uint256 token1MinAmount;
     uint256 defaultSwapFeeBips;
 }
 

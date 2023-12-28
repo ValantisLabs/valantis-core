@@ -51,8 +51,8 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
     function test_customConstructorArgs() public {
         CustomConstructorArgsParams memory customParams = CustomConstructorArgsParams(
-            TokenData(true, 9, 1e6),
-            TokenData(false, 0, 0),
+            TokenData(true, 9),
+            TokenData(false, 0),
             makeAddr('SOVEREIGN_VAULT'),
             makeAddr('VERIFIER_MODULE'),
             16
@@ -67,7 +67,6 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         // Check custom params for token0.
         assertEq(pool.isRebaseTokenPool(), true);
         assertEq(pool.isToken0Rebase(), true);
-        assertEq(pool.token0MinAmount(), customParams.token0Data.tokenMinAmount);
         assertEq(pool.token0AbsErrorTolerance(), customParams.token0Data.tokenAbsErrorTolerance);
 
         // Increase tolerance to more than MAX.
@@ -110,6 +109,19 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         pool.setPoolManager(newManager);
 
         assertEq(pool.poolManager(), newManager);
+
+        _setPoolManagerFees(1e18, 1e18);
+        _setupBalanceForUser(address(pool), address(token0), 2e18);
+        _setupBalanceForUser(address(pool), address(token1), 2e18);
+
+        vm.prank(newManager);
+        pool.setPoolManager(ZERO_ADDRESS);
+
+        _assertTokenBalance(token0, address(pool), 1e18);
+        _assertTokenBalance(token1, address(pool), 1e18);
+
+        _assertTokenBalance(token0, newManager, 1e18);
+        _assertTokenBalance(token1, newManager, 1e18);
     }
 
     function test_setPoolManagerFeeBips() public {
@@ -399,8 +411,8 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         customArgs.sovereignVault = address(0);
         customArgs.verifierModule = address(this);
-        customArgs.token0Data = TokenData(true, 10, 1e6);
-        customArgs.token1Data = TokenData(true, 10, 1e6);
+        customArgs.token0Data = TokenData(true, 10);
+        customArgs.token1Data = TokenData(true, 10);
 
         constructorArgs = _generatCustomConstructorArgs(customArgs);
 
@@ -425,26 +437,6 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
             USER,
             new bytes(0),
             abi.encode(1, amount0Deposit, amount1Deposit)
-        );
-
-        // Check token min amount for token0 error.
-        vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_token0BelowMinimumDeposit.selector);
-        pool.depositLiquidity(
-            1e6 - 1,
-            amount1Deposit,
-            makeAddr('DEPOSIT'),
-            new bytes(0),
-            abi.encode(0, 1e6 - 1, amount1Deposit)
-        );
-
-        // Check token min amount for token1 error.
-        vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_token1BelowMinimumDeposit.selector);
-        pool.depositLiquidity(
-            amount0Deposit,
-            1e6 - 1,
-            makeAddr('DEPOSIT'),
-            new bytes(0),
-            abi.encode(0, amount0Deposit, 1e6 - 1)
         );
 
         // Check for token0 diff error on transfer.

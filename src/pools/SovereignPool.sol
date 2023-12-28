@@ -60,7 +60,6 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
     error SovereignPool__excessiveToken1AbsErrorTolerance();
     error SovereignPool__onlyALM();
     error SovereignPool__onlyGauge();
-    error SovereignPool__onlyPermissionedUser();
     error SovereignPool__onlyPoolManager();
     error SovereignPool__onlyProtocolFactory();
     error SovereignPool__sameTokenNotAllowed();
@@ -72,16 +71,11 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
     error SovereignPool__depositLiquidity_excessiveToken1ErrorOnTransfer();
     error SovereignPool__depositLiquidity_insufficientToken0Amount();
     error SovereignPool__depositLiquidity_insufficientToken1Amount();
-    error SovereignPool__depositLiquidity_token0BelowMinimumDeposit();
-    error SovereignPool__depositLiquidity_token1BelowMinimumDeposit();
     error SovereignPool__depositLiquidity_zeroTotalDepositAmount();
     error SovereignPool__getReserves_invalidReservesLength();
     error SovereignPool__setGauge_gaugeAlreadySet();
     error SovereignPool__setPoolManagerFeeBips_excessivePoolManagerFee();
     error SovereignPool__setSovereignOracle__sovereignOracleAlreadySet();
-    error SovereignPool__setVerifierModule_verifierAlreadySet();
-    error SovereignPool__setVerifierModule_verifierNotAllowed();
-    error SovereignPool__swap_swapFeeModuleNotSet();
     error SovereignPool__swap_excessiveSwapFee();
     error SovereignPool__swap_invalidLiquidityQuote();
     error SovereignPool__swap_invalidPoolTokenOut();
@@ -91,10 +85,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
     error SovereignPool__swap_invalidSwapTokenOut();
     error SovereignPool__withdrawLiquidity_insufficientReserve0();
     error SovereignPool__withdrawLiquidity_insufficientReserve1();
-    error SovereignPool__withdrawLiquidity_insufficientFee0();
-    error SovereignPool__withdrawLiquidity_insufficientFee1();
     error SovereignPool__withdrawLiquidity_invalidRecipient();
-    error SovereignPool___getUpdatedSharePostChange_invalidInputs();
     error SovereignPool___handleTokenInOnSwap_excessiveTokenInErrorOnTransfer();
     error SovereignPool___handleTokenInOnSwap_invalidTokenInAmount();
     error SovereignPool___verifyPermission_onlyPermissionedAccess(address sender, uint8 accessType);
@@ -196,16 +187,6 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
              See: https://github.com/lidofinance/lido-dao/issues/442.
      */
     uint256 public immutable token1AbsErrorTolerance;
-
-    /**
-        @notice Minimum amount of token0 for each deposit.
-     */
-    uint256 public immutable token0MinAmount;
-
-    /**
-        @notice Minimum amount of token1 for each deposit.
-     */
-    uint256 public immutable token1MinAmount;
 
     /************************************************
      *  STORAGE
@@ -328,9 +309,6 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
 
         token0AbsErrorTolerance = args.token0AbsErrorTolerance;
         token1AbsErrorTolerance = args.token1AbsErrorTolerance;
-
-        token0MinAmount = args.token0MinAmount;
-        token1MinAmount = args.token1MinAmount;
 
         defaultSwapFeeBips = args.defaultSwapFeeBips <= MAX_SWAP_FEE_BIPS ? args.defaultSwapFeeBips : MAX_SWAP_FEE_BIPS;
     }
@@ -459,6 +437,18 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
      */
     function setPoolManager(address _manager) external override onlyPoolManager nonReentrant {
         poolManager = _manager;
+
+        if (_manager == address(0)) {
+            poolManagerFeeBips = 0;
+            // It will be assumed pool is not going to contribute anything to protocol fees.
+            if (sovereignVault == address(this)) {
+                if (feePoolManager0 > 0) _token0.safeTransfer(msg.sender, feePoolManager0);
+                if (feePoolManager1 > 0) _token1.safeTransfer(msg.sender, feePoolManager1);
+
+                feePoolManager0 = 0;
+                feePoolManager1 = 0;
+            }
+        }
 
         emit PoolManagerSet(_manager);
     }
@@ -686,10 +676,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
         SovereignPoolSwapParams calldata _swapParams
     ) external override nonReentrant returns (uint256 amountInUsed, uint256 amountOut) {
         // Cannot swap below minimum input token amount
-        if (
-            _swapParams.amountIn == 0 ||
-            _swapParams.amountIn < (_swapParams.isZeroToOne ? token0MinAmount : token1MinAmount)
-        ) {
+        if (_swapParams.amountIn == 0) {
             revert SovereignPool__swap_insufficientAmountIn();
         }
 
@@ -866,14 +853,6 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
 
         amount0Deposited = _token0.balanceOf(address(this)) - token0PreBalance;
         amount1Deposited = _token1.balanceOf(address(this)) - token1PreBalance;
-
-        if (amount0Deposited < token0MinAmount) {
-            revert SovereignPool__depositLiquidity_token0BelowMinimumDeposit();
-        }
-
-        if (amount1Deposited < token1MinAmount) {
-            revert SovereignPool__depositLiquidity_token1BelowMinimumDeposit();
-        }
 
         // Post-deposit checks for token0
         if (isToken0Rebase) {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { MockSovereignVault } from 'test/mocks/MockSovereignVault.sol';
+import { MockSovereignVault } from 'src/mocks/MockSovereignVault.sol';
 
 library MockSovereignVaultHelper {
     function deploySovereignVault() internal returns (address) {
