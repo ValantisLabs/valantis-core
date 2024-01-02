@@ -117,17 +117,17 @@ contract ProtocolFactory is IProtocolFactory {
     mapping(address => address) public almFactories;
 
     /**
-        @notice Mapping of Swap Fee Module and its respective pool.
+        @notice Mapping of Swap Fee Module and its respective factory.
      */
     mapping(address => address) public swapFeeModules;
 
     /**
-        @notice Mapping of Universal Oracle module and its respective pool. 
+        @notice Mapping of Universal Oracle module and its respective factory. 
      */
     mapping(address => address) public universalOracleModules;
 
     /**
-        @notice Mapping of Sovereign Oracle module and its respective pool.
+        @notice Mapping of Sovereign Oracle module and its respective factory.
         */
     mapping(address => address) public sovereignOracleModules;
 
@@ -272,53 +272,23 @@ contract ProtocolFactory is IProtocolFactory {
     }
 
     function isValidUniversalALMPosition(address _almPosition) external view override returns (bool) {
-        address almFactory = almFactories[_almPosition];
-
-        if (almFactory == address(0)) {
-            return false;
-        }
-
-        return _universalALMFactories.contains(almFactory);
+        return _isValidDeployment(_almPosition, almFactories, _universalALMFactories);
     }
 
     function isValidSovereignALMPosition(address _almPosition) external view override returns (bool) {
-        address almFactory = almFactories[_almPosition];
-
-        if (almFactory == address(0)) {
-            return false;
-        }
-
-        return _sovereignALMFactories.contains(almFactory);
+        return _isValidDeployment(_almPosition, almFactories, _sovereignALMFactories);
     }
 
     function isValidSwapFeeModule(address _swapFeeModule) external view override returns (bool) {
-        address swapFeeModuleFactory = swapFeeModules[_swapFeeModule];
-
-        if (swapFeeModuleFactory == address(0)) {
-            return false;
-        }
-
-        return _swapFeeModuleFactories.contains(swapFeeModuleFactory);
+        return _isValidDeployment(_swapFeeModule, swapFeeModules, _swapFeeModuleFactories);
     }
 
     function isValidUniversalOracleModule(address _universalOracleModule) external view override returns (bool) {
-        address universalOracleModuleFactory = universalOracleModules[_universalOracleModule];
-
-        if (universalOracleModuleFactory == address(0)) {
-            return false;
-        }
-
-        return _universalOracleModuleFactories.contains(universalOracleModuleFactory);
+        return _isValidDeployment(_universalOracleModule, universalOracleModules, _universalOracleModuleFactories);
     }
 
     function isValidSovereignOracleModule(address _sovereignOracleModule) external view override returns (bool) {
-        address sovereignOracleModuleFactory = sovereignOracleModules[_sovereignOracleModule];
-
-        if (sovereignOracleModuleFactory == address(0)) {
-            return false;
-        }
-
-        return _sovereignOracleModuleFactories.contains(sovereignOracleModuleFactory);
+        return _isValidDeployment(_sovereignOracleModule, sovereignOracleModules, _sovereignOracleModuleFactories);
     }
 
     /************************************************
@@ -731,8 +701,6 @@ contract ProtocolFactory is IProtocolFactory {
                  Only applicable if isToken0Rebase=True.
                *token1AbsErrorTolerance Maximum absolute error allowed on rebase token transfers.
                  Only applicable if isToken1Rebase=True.
-               *token0MinAmount Minimum amount of token0 required for deposits.
-               *token1MinAmount Minimum amount of token1 required for deposits.
                *defaultSwapFeeBips Default constant swap fee in basis-points.
         @return pool Address of deployed Sovereign Pool. 
      */
@@ -987,6 +955,21 @@ contract ProtocolFactory is IProtocolFactory {
         if (!Address.isContract(create2Address)) {
             revert ProtocolFactory__noContractDeployed();
         }
+    }
+
+    function _isValidDeployment(
+        address deployment,
+        mapping(address => address) storage deploymentFactories,
+        EnumerableSet.AddressSet storage factories
+    ) private view returns (bool) {
+        address factory = deploymentFactories[deployment];
+
+        // `deployment` is not associated with any factory
+        if (factory == address(0)) {
+            return false;
+        }
+
+        return factories.contains(factory);
     }
 
     function _isValidUniversalPool(address pool) private view returns (bool) {
