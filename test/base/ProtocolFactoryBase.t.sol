@@ -9,9 +9,17 @@ import { ProtocolFactoryDeployer } from 'test/deployers/ProtocolFactoryDeployer.
 contract ProtocolFactoryBase is Base, ProtocolFactoryDeployer {
     ProtocolFactory public protocolFactory;
 
+    bool public isAuctionControllerInitialized;
+
     function setUp() public {
         _setupBase();
 
         protocolFactory = deployProtocolFactory();
+    }
+
+    function initiateAuctionController() external {
+        assertEq(msg.sender, address(protocolFactory));
+
+        isAuctionControllerInitialized = true;
     }
 }
