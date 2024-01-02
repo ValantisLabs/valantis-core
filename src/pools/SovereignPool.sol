@@ -96,8 +96,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
 
     /**
         @notice Maximum swap fee is 50% of input amount. 
-        @dev Swap fee is calculated as `amount` * swapFeeInBips / (10_000 + swapFeeInBips),
-             hence swapFeeInBips=10_000 yields a maximum fee of 50%.
+        @dev See docs for a more detailed explanation about how swap fees are applied.
      */
     uint256 public constant MAX_SWAP_FEE_BIPS = 10_000;
 
@@ -141,6 +140,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
     /**
         @notice Default pool swap fee in basis-points (bips).
         @dev Can be overriden by whitelisting a Swap Fee Module.
+        @dev See docs for a more detailed explanation about how swap fees are applied.
      */
     uint256 public immutable defaultSwapFeeBips;
 
@@ -244,6 +244,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
         @notice Swap Fee Module (Optional).
         @dev Defines custom logic to compute swap fees.
         @dev If not specified, a constant `defaultSwapFeeBips` will be used.
+        @dev See docs for a more detailed explanation about how swap fees are applied.
      */
     ISwapFeeModule private _swapFeeModule;
 
