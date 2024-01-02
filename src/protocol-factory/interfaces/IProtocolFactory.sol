@@ -39,19 +39,7 @@ interface IProtocolFactory {
     // solhint-disable-next-line func-name-mixedcase
     function BLOCK_TIME() external view returns (uint256);
 
-    function universalALMCodeHashes(address _alm) external view returns (bytes32);
-
-    function sovereignALMCodeHashes(address _alm) external view returns (bytes32);
-
-    function swapFeeModuleCodeHashes(address _swapFeeModule) external view returns (bytes32);
-
-    function universalOracleModuleCodeHashes(address _universalOracleModule) external view returns (bytes32);
-
-    function sovereignOracleModuleCodeHashes(address _sovereignOracleModule) external view returns (bytes32);
-
     function almFactories(address _almPosition) external view returns (address);
-
-    function almPositionPools(address _almPosition) external view returns (address);
 
     function swapFeeModules(address _pool) external view returns (address);
 

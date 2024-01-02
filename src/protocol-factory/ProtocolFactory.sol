@@ -8,11 +8,14 @@ import { IProtocolFactory } from 'src/protocol-factory/interfaces/IProtocolFacto
 import { IValantisDeployer } from 'src/protocol-factory/interfaces/IValantisDeployer.sol';
 import { IPoolGaugeDeployer } from 'src/protocol-factory/interfaces/IPoolGaugeDeployer.sol';
 import { IPoolDeployer } from 'src/protocol-factory/interfaces/IPoolDeployer.sol';
+
 import { ISovereignPool } from 'src/pools/interfaces/ISovereignPool.sol';
-import { IUniversalPool } from 'src/pools/interfaces/IUniversalPool.sol';
+import { IUniversalPool, PoolState } from 'src/pools/interfaces/IUniversalPool.sol';
 import { IValantisPool } from 'src/pools/interfaces/IValantisPool.sol';
 import { SovereignPoolConstructorArgs } from 'src/pools/structs/SovereignPoolStructs.sol';
+
 import { IAuctionController } from 'src/governance/auctions/interfaces/IAuctionController.sol';
+import { IEmissionsController } from 'src/governance/emissions/interfaces/IEmissionsController.sol';
 
 contract ProtocolFactory is IProtocolFactory {
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -74,12 +77,12 @@ contract ProtocolFactory is IProtocolFactory {
      ***********************************************/
 
     /**
-        @notice Mapping of token pair and ALM to set of Universal pools.
+        @notice Mapping of token pair to set of Universal pools.
      */
     mapping(address => mapping(address => EnumerableSet.AddressSet)) private _universalPools;
 
     /**
-        @notice Mapping of token pair and ALM to set of Sovereign pools.
+        @notice Mapping of token pair to set of Sovereign pools.
      */
     mapping(address => mapping(address => EnumerableSet.AddressSet)) private _sovereignPools;
 
@@ -109,39 +112,9 @@ contract ProtocolFactory is IProtocolFactory {
     EnumerableSet.AddressSet private _sovereignOracleModuleFactories;
 
     /**
-        @notice Bytecode hash for each ALM.
-     */
-    mapping(address => bytes32) public universalALMCodeHashes;
-
-    /**
-        @notice Bytecode hash for each ALM.
-     */
-    mapping(address => bytes32) public sovereignALMCodeHashes;
-
-    /**
-        @notice Bytecode hash for each Swap Fee Module.
-     */
-    mapping(address => bytes32) public swapFeeModuleCodeHashes;
-
-    /**
-        @notice Bytecode hash for each Universal Oracle module. 
-     */
-    mapping(address => bytes32) public universalOracleModuleCodeHashes;
-
-    /**
-        @notice Bytecode hash for each Sovereign Oracle module. 
-     */
-    mapping(address => bytes32) public sovereignOracleModuleCodeHashes;
-
-    /**
         @notice Mapping of ALM position and its respective factory.
      */
     mapping(address => address) public almFactories;
-
-    /**
-        @notice Mapping of ALM position and its respective pool.
-     */
-    mapping(address => address) public almPositionPools;
 
     /**
         @notice Mapping of Swap Fee Module and its respective pool.
@@ -233,25 +206,17 @@ contract ProtocolFactory is IProtocolFactory {
      *  MODIFIERS
      ***********************************************/
 
-    function _onlyProtocolDeployer() private view {
+    modifier onlyProtocolDeployer() {
         if (msg.sender != protocolDeployer) {
             revert ProtocolFactory__onlyProtocolDeployer();
         }
-    }
-
-    function _onlyProtocolManager() private view {
-        if (msg.sender != protocolManager) {
-            revert ProtocolFactory__onlyProtocolManager();
-        }
-    }
-
-    modifier onlyProtocolDeployer() {
-        _onlyProtocolDeployer();
         _;
     }
 
     modifier onlyProtocolManager() {
-        _onlyProtocolManager();
+        if (msg.sender != protocolManager) {
+            revert ProtocolFactory__onlyProtocolManager();
+        }
         _;
     }
 
@@ -588,8 +553,7 @@ contract ProtocolFactory is IProtocolFactory {
         bytes32 salt = keccak256(abi.encode(_pool, _swapFeeModuleFactory, swapFeeModuleNonceCache));
         swapFeeModuleNonce = swapFeeModuleNonceCache + 1;
 
-        bytes32 expectedBytecodeHash = swapFeeModuleCodeHashes[_swapFeeModuleFactory];
-        swapFeeModule = _deployViaFactory(expectedBytecodeHash, salt, _swapFeeModuleFactory, _constructorArgs);
+        swapFeeModule = _deployViaFactory(salt, _swapFeeModuleFactory, _constructorArgs);
 
         // Store mapping for ALM and its factory
         swapFeeModules[swapFeeModule] = _swapFeeModuleFactory;
@@ -622,13 +586,7 @@ contract ProtocolFactory is IProtocolFactory {
         bytes32 salt = keccak256(abi.encode(_pool, _universalOracleModuleFactory, universalOracleModuleNonceCache));
         universalOracleModuleNonce = universalOracleModuleNonceCache + 1;
 
-        bytes32 expectedBytecodeHash = universalOracleModuleCodeHashes[_universalOracleModuleFactory];
-        universalOracleModule = _deployViaFactory(
-            expectedBytecodeHash,
-            salt,
-            _universalOracleModuleFactory,
-            _constructorArgs
-        );
+        universalOracleModule = _deployViaFactory(salt, _universalOracleModuleFactory, _constructorArgs);
 
         universalOracleModules[universalOracleModule] = _universalOracleModuleFactory;
 
@@ -660,13 +618,7 @@ contract ProtocolFactory is IProtocolFactory {
         bytes32 salt = keccak256(abi.encode(_pool, _sovereignOracleModuleFactory, sovereignOracleModuleNonceCache));
         sovereignOracleModuleNonce = sovereignOracleModuleNonceCache + 1;
 
-        bytes32 expectedBytecodeHash = sovereignOracleModuleCodeHashes[_sovereignOracleModuleFactory];
-        sovereignOracleModule = _deployViaFactory(
-            expectedBytecodeHash,
-            salt,
-            _sovereignOracleModuleFactory,
-            _constructorArgs
-        );
+        sovereignOracleModule = _deployViaFactory(salt, _sovereignOracleModuleFactory, _constructorArgs);
 
         sovereignOracleModules[sovereignOracleModule] = _sovereignOracleModuleFactory;
 
@@ -714,14 +666,16 @@ contract ProtocolFactory is IProtocolFactory {
             revert ProtocolFactory__invalidUniversalPool();
         }
 
-        // {
-        //     address poolManager = IUniversalPool(_pool).state().poolManager;
-        //     if (poolManager != address(0) && msg.sender != poolManager) {
-        //         revert ProtocolFactory__deployUniversalGauge_onlyPoolManager();
-        //     } else if (poolManager == address(0) && msg.sender != protocolManager) {
-        //         revert ProtocolFactory__deployUniversalGauge_onlyPoolManager();
-        //     }
-        // }
+        {
+            address poolManager = IUniversalPool(_pool).state().poolManager;
+            // Only poolManager can deploy a Gauge, if it exists.
+            // Otherwise only protocolManager can do so.
+            if (poolManager != address(0) && msg.sender != poolManager) {
+                revert ProtocolFactory__deployUniversalGauge_onlyPoolManager();
+            } else if (poolManager == address(0) && msg.sender != protocolManager) {
+                revert ProtocolFactory__deployUniversalGauge_onlyPoolManager();
+            }
+        }
 
         if (gaugeByPool[_pool] != address(0)) {
             revert ProtocolFactory__deployUniversalGauge_alreadySet();
@@ -769,6 +723,8 @@ contract ProtocolFactory is IProtocolFactory {
                *poolManager Address of Sovereign Pool manager.
                *sovereignVault Address which is meant to hold pool's reserves.
                  If passsed as null address, `pool` will hold reserves.
+               *verifierModule Address of Verifier Module, which does access management
+                 on swaps, withdrawals and deposits.
                *isToken0Rebase True if token0 is a rebase token.
                *isToken1Rebase True if token1 is a rebase token.
                *token0AbsErrorTolerance Maximum absolute error allowed on rebase token transfers.
@@ -808,6 +764,8 @@ contract ProtocolFactory is IProtocolFactory {
 
         {
             address poolManager = ISovereignPool(_pool).poolManager();
+            // Only poolManager can deploy a Gauge, if it exists.
+            // Otherwise only protocolManager can do so.
             if (poolManager != address(0) && msg.sender != poolManager) {
                 revert ProtocolFactory__deploySovereignGauge_onlyPoolManager();
             } else if (poolManager == address(0) && msg.sender != protocolManager) {
@@ -839,6 +797,7 @@ contract ProtocolFactory is IProtocolFactory {
             address(governanceToken)
         );
         gauge = IPoolGaugeDeployer(sovereignGaugeFactory).deploy(bytes32(0), constructorArgs);
+        ISovereignPool(_pool).setGauge(gauge);
 
         gaugeByPool[_pool] = gauge;
         poolByGauge[gauge] = _pool;
@@ -853,7 +812,7 @@ contract ProtocolFactory is IProtocolFactory {
         @param _almFactory Address of Universal ALM factory to add.
      */
     function addUniversalALMFactory(address _almFactory) external override onlyProtocolManager {
-        _addFactory(_almFactory, _universalALMFactories, universalALMCodeHashes);
+        _addFactory(_almFactory, _universalALMFactories);
 
         emit UniversalALMFactoryAdded(_almFactory);
     }
@@ -863,7 +822,7 @@ contract ProtocolFactory is IProtocolFactory {
         @param _almFactory Address of Sovereign ALM factory to add.
      */
     function addSovereignALMFactory(address _almFactory) external override onlyProtocolManager {
-        _addFactory(_almFactory, _sovereignALMFactories, sovereignALMCodeHashes);
+        _addFactory(_almFactory, _sovereignALMFactories);
 
         emit SovereignALMFactoryAdded(_almFactory);
     }
@@ -873,7 +832,7 @@ contract ProtocolFactory is IProtocolFactory {
         @param _swapFeeModuleFactory Address of Swap Fee Module factory to add.
      */
     function addSwapFeeModuleFactory(address _swapFeeModuleFactory) external override onlyProtocolManager {
-        _addFactory(_swapFeeModuleFactory, _swapFeeModuleFactories, swapFeeModuleCodeHashes);
+        _addFactory(_swapFeeModuleFactory, _swapFeeModuleFactories);
 
         emit SwapFeeModuleFactoryAdded(_swapFeeModuleFactory);
     }
@@ -885,7 +844,7 @@ contract ProtocolFactory is IProtocolFactory {
     function addUniversalOracleModuleFactory(
         address _universalOracleModuleFactory
     ) external override onlyProtocolManager {
-        _addFactory(_universalOracleModuleFactory, _universalOracleModuleFactories, universalOracleModuleCodeHashes);
+        _addFactory(_universalOracleModuleFactory, _universalOracleModuleFactories);
 
         emit UniversalOracleFactoryAdded(_universalOracleModuleFactory);
     }
@@ -897,7 +856,7 @@ contract ProtocolFactory is IProtocolFactory {
     function addSovereignOracleModuleFactory(
         address _sovereignOracleModuleFactory
     ) external override onlyProtocolManager {
-        _addFactory(_sovereignOracleModuleFactory, _sovereignOracleModuleFactories, sovereignOracleModuleCodeHashes);
+        _addFactory(_sovereignOracleModuleFactory, _sovereignOracleModuleFactories);
 
         emit SovereignOracleFactoryAdded(_sovereignOracleModuleFactory);
     }
@@ -907,7 +866,7 @@ contract ProtocolFactory is IProtocolFactory {
         @param _almFactory Address of Universal ALM factory to remove. 
      */
     function removeUniversalALMFactory(address _almFactory) external override onlyProtocolManager {
-        _removeFactory(_almFactory, _universalALMFactories, universalALMCodeHashes);
+        _removeFactory(_almFactory, _universalALMFactories);
 
         emit UniversalALMFactoryRemoved(_almFactory);
     }
@@ -917,7 +876,7 @@ contract ProtocolFactory is IProtocolFactory {
         @param _almFactory Address of Sovereign ALM factory to remove. 
      */
     function removeSovereignALMFactory(address _almFactory) external override onlyProtocolManager {
-        _removeFactory(_almFactory, _sovereignALMFactories, sovereignALMCodeHashes);
+        _removeFactory(_almFactory, _sovereignALMFactories);
 
         emit SovereignALMFactoryRemoved(_almFactory);
     }
@@ -927,7 +886,7 @@ contract ProtocolFactory is IProtocolFactory {
         @param _swapFeeModuleFactory Address of Swap Fee Module factory to remove. 
      */
     function removeSwapFeeModuleFactory(address _swapFeeModuleFactory) external override onlyProtocolManager {
-        _removeFactory(_swapFeeModuleFactory, _swapFeeModuleFactories, swapFeeModuleCodeHashes);
+        _removeFactory(_swapFeeModuleFactory, _swapFeeModuleFactories);
 
         emit SwapFeeModuleFactoryRemoved(_swapFeeModuleFactory);
     }
@@ -939,7 +898,7 @@ contract ProtocolFactory is IProtocolFactory {
     function removeUniversalOracleModuleFactory(
         address _universalOracleModuleFactory
     ) external override onlyProtocolManager {
-        _removeFactory(_universalOracleModuleFactory, _universalOracleModuleFactories, universalOracleModuleCodeHashes);
+        _removeFactory(_universalOracleModuleFactory, _universalOracleModuleFactories);
 
         emit UniversalOracleFactoryRemoved(_universalOracleModuleFactory);
     }
@@ -951,7 +910,7 @@ contract ProtocolFactory is IProtocolFactory {
     function removeSovereignOracleModuleFactory(
         address _sovereignOracleModuleFactory
     ) external override onlyProtocolManager {
-        _removeFactory(_sovereignOracleModuleFactory, _sovereignOracleModuleFactories, sovereignOracleModuleCodeHashes);
+        _removeFactory(_sovereignOracleModuleFactory, _sovereignOracleModuleFactories);
 
         emit SovereignOracleFactoryRemoved(_sovereignOracleModuleFactory);
     }
@@ -960,11 +919,7 @@ contract ProtocolFactory is IProtocolFactory {
      *  PRIVATE FUNCTIONS
      ***********************************************/
 
-    function _addFactory(
-        address factory,
-        EnumerableSet.AddressSet storage factories,
-        mapping(address => bytes32) storage factoryCodeHashes
-    ) private {
+    function _addFactory(address factory, EnumerableSet.AddressSet storage factories) private {
         if (factory == address(0)) {
             revert ProtocolFactory__zeroAddress();
         }
@@ -973,19 +928,10 @@ contract ProtocolFactory is IProtocolFactory {
             revert ProtocolFactory___addFactory_alreadyAdded();
         }
 
-        bytes memory bytecode = IValantisDeployer(factory).getContractBytecode();
-        bytes32 bytecodeHash = keccak256(bytecode);
-
-        factoryCodeHashes[factory] = bytecodeHash;
-
         factories.add(factory);
     }
 
-    function _removeFactory(
-        address factory,
-        EnumerableSet.AddressSet storage factories,
-        mapping(address => bytes32) storage factoryCodeHashes
-    ) private {
+    function _removeFactory(address factory, EnumerableSet.AddressSet storage factories) private {
         if (factory == address(0)) {
             revert ProtocolFactory__zeroAddress();
         }
@@ -993,8 +939,6 @@ contract ProtocolFactory is IProtocolFactory {
         if (!factories.contains(factory)) {
             revert ProtocolFactory___removeFactory_notWhitelisted();
         }
-
-        factoryCodeHashes[factory] = 0;
 
         factories.remove(factory);
     }
@@ -1016,49 +960,30 @@ contract ProtocolFactory is IProtocolFactory {
         bytes32 salt = keccak256(abi.encode(pool, almFactory, almNonceCache));
         almNonce = almNonceCache + 1;
 
-        bytes32 expectedBytecodeHash = isUniversalPool
-            ? universalALMCodeHashes[almFactory]
-            : sovereignALMCodeHashes[almFactory];
-        alm = _deployViaFactory(expectedBytecodeHash, salt, almFactory, constructorArgs);
+        alm = _deployViaFactory(salt, almFactory, constructorArgs);
 
         // Store mapping for ALM and its factory
         almFactories[alm] = almFactory;
-
-        // Store mapping for ALM and its pool
-        almPositionPools[alm] = pool;
     }
 
     function _deployViaFactory(
-        bytes32 expectedBytecodeHash,
         bytes32 salt,
         address factory,
         bytes calldata constructorArgs
     ) private returns (address create2Address) {
-        // This deployment function has several pre and post conditions
-        // to ensure that a factory cannot deploy arbitrary bytecode,
-        // only bytecode whose hash is the same set at initialization.
-        bytes memory bytecode = IValantisDeployer(factory).getContractBytecode();
-        bytes32 bytecodeHash = keccak256(bytecode);
+        // WARNING: ProtocolFactory makes no guarantees regarding the bytecode or state
+        // variables of the contract deployed by `factory`
+        // The internal logic of `factory` should be thoroughly checked before whitelisting
+        create2Address = IValantisDeployer(factory).getCreate2Address(salt, constructorArgs);
 
-        if (bytecodeHash != expectedBytecodeHash) {
-            revert ProtocolFactory__invalidBytecode();
-        }
-
-        bool hasConstructorArgs = keccak256(constructorArgs) != keccak256(new bytes(0));
-        if (hasConstructorArgs) {
-            bytecode = abi.encodePacked(bytecode, constructorArgs);
-        }
-
-        bytes32 create2Hash = keccak256(abi.encodePacked(bytes1(0xff), factory, salt, keccak256(bytecode)));
-
-        create2Address = address(uint160(uint256(create2Hash)));
-
+        // Ensure that create2Address contains no bytecode
         if (Address.isContract(create2Address)) {
             revert ProtocolFactory__addressWithContract();
         }
 
         IValantisDeployer(factory).deploy(salt, constructorArgs);
 
+        // Ensure that create2Address is a contract after deployment
         if (!Address.isContract(create2Address)) {
             revert ProtocolFactory__noContractDeployed();
         }
