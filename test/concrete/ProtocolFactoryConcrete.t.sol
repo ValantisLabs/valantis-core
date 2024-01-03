@@ -461,6 +461,56 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         protocolFactory.removeSovereignOracleModuleFactory(sovereignOracleModuleFactory);
     }
 
+    function test_deploySovereignGauge() public {
+        address gaugeManager = address(this);
+
+        // Check error on invalid Sovereign Pool
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__invalidSovereignPool.selector);
+        protocolFactory.deploySovereignGauge(makeAddr('FAKE_POOL'), gaugeManager);
+
+        address pool = test_deploySovereignPool();
+
+        // Check error on unauthorized call to deploy Sovereign Gauge
+        vm.prank(signers[0]);
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__deploySovereignGauge_onlyPoolManager.selector);
+        protocolFactory.deploySovereignGauge(pool, gaugeManager);
+
+        // Check error on Auction Controller not set
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__auctionControllerNotSet.selector);
+        protocolFactory.deploySovereignGauge(pool, gaugeManager);
+
+        test_setAuctionController();
+
+        // Check error on Emissions Controller not set
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__emissionsControllerNotSet.selector);
+        protocolFactory.deploySovereignGauge(pool, gaugeManager);
+
+        test_setEmissionsController();
+
+        // Check error on Governance Token not set
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__valTokenNotSet.selector);
+        protocolFactory.deploySovereignGauge(pool, gaugeManager);
+
+        test_setGovernanceToken();
+
+        // Set Sovereign Gauge factory as this contract
+        protocolFactory.setSovereignGaugeFactory(gaugeManager);
+
+        // Check Sovereign Gauge is deployed correctly
+        address gauge = protocolFactory.deploySovereignGauge(pool, gaugeManager);
+        assertEq(gauge, makeAddr('GAUGE'));
+        assertEq(protocolFactory.gaugeByPool(pool), gauge);
+        assertEq(protocolFactory.poolByGauge(gauge), pool);
+
+        // Check error on Sovereign Gauge already set
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__deploySovereignGauge_alreadySet.selector);
+        protocolFactory.deploySovereignGauge(pool, gaugeManager);
+    }
+
+    /************************************************
+     *  Test Public Functions
+     ***********************************************/
+
     function test_deploySovereignPool() public returns (address pool) {
         _setSovereignPoolFactory();
 
@@ -478,8 +528,13 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         vm.expectRevert(ProtocolFactory.ProtocolFactory__tokenNotContract.selector);
         protocolFactory.deploySovereignPool(args);
 
-        // Check Sovereign Pool is deployed correctly
+        args.token0 = ZERO_ADDRESS;
         args.token1 = address(token1);
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__tokenNotContract.selector);
+        protocolFactory.deploySovereignPool(args);
+
+        // Check Sovereign Pool is deployed correctly
+        args.token0 = address(token0);
         pool = protocolFactory.deploySovereignPool(args);
         assertEq(protocolFactory.isValidSovereignPool(pool), true);
     }

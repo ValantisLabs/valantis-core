@@ -999,11 +999,15 @@ contract ProtocolFactory is IProtocolFactory {
     function _isValidUniversalPool(address pool) private view returns (bool) {
         IUniversalPool poolInterface = IUniversalPool(pool);
 
+        if (pool.code.length == 0) return false;
+
         return _universalPools[poolInterface.token0()][poolInterface.token1()].contains(pool);
     }
 
     function _isValidSovereignPool(address pool) private view returns (bool) {
         ISovereignPool poolInterface = ISovereignPool(pool);
+
+        if (pool.code.length == 0) return false;
 
         return _sovereignPools[poolInterface.token0()][poolInterface.token1()].contains(pool);
     }

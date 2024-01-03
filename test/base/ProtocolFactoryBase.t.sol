@@ -25,6 +25,10 @@ contract ProtocolFactoryBase is Base, ProtocolFactoryDeployer, SovereignPoolFact
         isAuctionControllerInitialized = true;
     }
 
+    function deploy(bytes32 /*_salt*/, bytes calldata /*_constructorArgs*/) external returns (address deployment) {
+        deployment = makeAddr('GAUGE');
+    }
+
     function _setSovereignPoolFactory() internal {
         address sovereignPoolFactory = address(deploySovereignPoolFactory());
         protocolFactory.setSovereignPoolFactory(sovereignPoolFactory);
