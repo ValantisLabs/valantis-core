@@ -241,6 +241,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         // Check Universal ALM factory is added correctly
         assertEq(protocolFactory.getUniversalALMFactories()[0], universalALMFactory);
         assertEq(protocolFactory.getUniversalALMFactories().length, 1);
+        assertEq(protocolFactory.isValidUniversalALMFactory(universalALMFactory), true);
 
         // Check error on Universal ALM factory already added
         vm.expectRevert(ProtocolFactory.ProtocolFactory___addFactory_alreadyAdded.selector);
@@ -263,6 +264,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         // Check Sovereign ALM factory is added correctly
         assertEq(protocolFactory.getSovereignALMFactories()[0], sovereignALMFactory);
         assertEq(protocolFactory.getSovereignALMFactories().length, 1);
+        assertEq(protocolFactory.isValidSovereignALMFactory(sovereignALMFactory), true);
 
         // Check error on Sovereign ALM factory already added
         vm.expectRevert(ProtocolFactory.ProtocolFactory___addFactory_alreadyAdded.selector);
@@ -285,6 +287,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         // Check Swap Fee Module factory is added correctly
         assertEq(protocolFactory.getSwapFeeModuleFactories()[0], swapFeeModuleFactory);
         assertEq(protocolFactory.getSwapFeeModuleFactories().length, 1);
+        assertEq(protocolFactory.isValidSwapFeeModuleFactory(swapFeeModuleFactory), true);
 
         // Check error on Swap Fee Module factory already added
         vm.expectRevert(ProtocolFactory.ProtocolFactory___addFactory_alreadyAdded.selector);
@@ -307,6 +310,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         // Check Universal Oracle Module factory is added correctly
         assertEq(protocolFactory.getUniversalOracleModuleFactories()[0], universalOracleModuleFactory);
         assertEq(protocolFactory.getUniversalOracleModuleFactories().length, 1);
+        assertEq(protocolFactory.isValidUniversalOracleModuleFactory(universalOracleModuleFactory), true);
 
         // Check error on Universal Oracle Module factory already added
         vm.expectRevert(ProtocolFactory.ProtocolFactory___addFactory_alreadyAdded.selector);
@@ -329,6 +333,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         // Check Sovereign Oracle Module factory is added correctly
         assertEq(protocolFactory.getSovereignOracleModuleFactories()[0], sovereignOracleModuleFactory);
         assertEq(protocolFactory.getSovereignOracleModuleFactories().length, 1);
+        assertEq(protocolFactory.isValidSovereignOracleModuleFactory(sovereignOracleModuleFactory), true);
 
         // Check error on Sovereign Oracle Module factory already added
         vm.expectRevert(ProtocolFactory.ProtocolFactory___addFactory_alreadyAdded.selector);
@@ -352,6 +357,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         protocolFactory.removeUniversalALMFactory(universalALMFactory);
         // Check Universal ALM factory is removed correctly
         assertEq(protocolFactory.getUniversalALMFactories().length, 0);
+        assertEq(protocolFactory.isValidUniversalALMFactory(universalALMFactory), false);
 
         // Check error on Universal ALM factory already removed
         vm.expectRevert(ProtocolFactory.ProtocolFactory___removeFactory_notWhitelisted.selector);
@@ -375,6 +381,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         protocolFactory.removeSovereignALMFactory(sovereignALMFactory);
         // Check Sovereign ALM factory is removed correctly
         assertEq(protocolFactory.getSovereignALMFactories().length, 0);
+        assertEq(protocolFactory.isValidSovereignALMFactory(sovereignALMFactory), false);
 
         // Check error on Sovereign ALM factory already removed
         vm.expectRevert(ProtocolFactory.ProtocolFactory___removeFactory_notWhitelisted.selector);
@@ -398,6 +405,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         protocolFactory.removeSwapFeeModuleFactory(swapFeeModuleFactory);
         // Check Swap Fee Module factory is removed correctly
         assertEq(protocolFactory.getSwapFeeModuleFactories().length, 0);
+        assertEq(protocolFactory.isValidSwapFeeModuleFactory(swapFeeModuleFactory), false);
 
         // Check error on Swap Fee Module factory already removed
         vm.expectRevert(ProtocolFactory.ProtocolFactory___removeFactory_notWhitelisted.selector);
@@ -421,6 +429,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         protocolFactory.removeUniversalOracleModuleFactory(universalOracleModuleFactory);
         // Check Universal Oracle Module factory is removed correctly
         assertEq(protocolFactory.getUniversalOracleModuleFactories().length, 0);
+        assertEq(protocolFactory.isValidUniversalOracleModuleFactory(universalOracleModuleFactory), false);
 
         // Check error on Universal Oracle Module factory already removed
         vm.expectRevert(ProtocolFactory.ProtocolFactory___removeFactory_notWhitelisted.selector);
@@ -444,6 +453,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         protocolFactory.removeSovereignOracleModuleFactory(sovereignOracleModuleFactory);
         // Check Sovereign Oracle Module factory is removed correctly
         assertEq(protocolFactory.getSovereignOracleModuleFactories().length, 0);
+        assertEq(protocolFactory.isValidSovereignOracleModuleFactory(sovereignOracleModuleFactory), false);
 
         // Check error on Sovereign Oracle Module factory already removed
         vm.expectRevert(ProtocolFactory.ProtocolFactory___removeFactory_notWhitelisted.selector);

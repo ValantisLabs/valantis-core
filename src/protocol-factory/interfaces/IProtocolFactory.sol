@@ -89,6 +89,16 @@ interface IProtocolFactory {
 
     function isValidSovereignPool(address _pool) external view returns (bool);
 
+    function isValidUniversalALMFactory(address _almFactory) external view returns (bool);
+
+    function isValidSovereignALMFactory(address _almFactory) external view returns (bool);
+
+    function isValidSwapFeeModuleFactory(address _swapFeeModuleFactory) external view returns (bool);
+
+    function isValidUniversalOracleModuleFactory(address _universalOracleModuleFactory) external view returns (bool);
+
+    function isValidSovereignOracleModuleFactory(address _sovereignOracleModuleFactory) external view returns (bool);
+
     function isValidUniversalALMPosition(address _almPosition) external view returns (bool);
 
     function isValidSovereignALMPosition(address _almPosition) external view returns (bool);

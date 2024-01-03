@@ -271,6 +271,30 @@ contract ProtocolFactory is IProtocolFactory {
         return _isValidSovereignPool(_pool);
     }
 
+    function isValidUniversalALMFactory(address _almFactory) external view override returns (bool) {
+        return _universalALMFactories.contains(_almFactory);
+    }
+
+    function isValidSovereignALMFactory(address _almFactory) external view override returns (bool) {
+        return _sovereignALMFactories.contains(_almFactory);
+    }
+
+    function isValidSwapFeeModuleFactory(address _swapFeeModuleFactory) external view override returns (bool) {
+        return _swapFeeModuleFactories.contains(_swapFeeModuleFactory);
+    }
+
+    function isValidUniversalOracleModuleFactory(
+        address _universalOracleModuleFactory
+    ) external view override returns (bool) {
+        return _universalOracleModuleFactories.contains(_universalOracleModuleFactory);
+    }
+
+    function isValidSovereignOracleModuleFactory(
+        address _sovereignOracleModuleFactory
+    ) external view override returns (bool) {
+        return _sovereignOracleModuleFactories.contains(_sovereignOracleModuleFactory);
+    }
+
     function isValidUniversalALMPosition(address _almPosition) external view override returns (bool) {
         return _isValidDeployment(_almPosition, almFactories, _universalALMFactories);
     }
