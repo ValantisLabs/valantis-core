@@ -4,6 +4,7 @@ pragma solidity 0.8.19;
 import { ProtocolFactory } from 'src/protocol-factory/ProtocolFactory.sol';
 
 import { ProtocolFactoryBase } from 'test/base/ProtocolFactoryBase.t.sol';
+import { SovereignPoolConstructorArgs } from 'src/pools/structs/SovereignPoolStructs.sol';
 
 contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
     /************************************************
@@ -458,5 +459,28 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         // Check error on Sovereign Oracle Module factory already removed
         vm.expectRevert(ProtocolFactory.ProtocolFactory___removeFactory_notWhitelisted.selector);
         protocolFactory.removeSovereignOracleModuleFactory(sovereignOracleModuleFactory);
+    }
+
+    function test_deploySovereignPool() public returns (address pool) {
+        _setSovereignPoolFactory();
+
+        SovereignPoolConstructorArgs memory args = _generateSovereignPoolDeploymentArgs(
+            ZERO_ADDRESS,
+            ZERO_ADDRESS,
+            address(this)
+        );
+
+        // Check error on invalid token address
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__tokenNotContract.selector);
+        protocolFactory.deploySovereignPool(args);
+
+        args.token0 = address(token0);
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__tokenNotContract.selector);
+        protocolFactory.deploySovereignPool(args);
+
+        // Check Sovereign Pool is deployed correctly
+        args.token1 = address(token1);
+        pool = protocolFactory.deploySovereignPool(args);
+        assertEq(protocolFactory.isValidSovereignPool(pool), true);
     }
 }
