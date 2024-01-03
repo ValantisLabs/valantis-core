@@ -334,4 +334,119 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         vm.expectRevert(ProtocolFactory.ProtocolFactory___addFactory_alreadyAdded.selector);
         protocolFactory.addSovereignOracleModuleFactory(sovereignOracleModuleFactory);
     }
+
+    function test_removeUniversalALMFactory() public {
+        test_addUniversalALMFactory();
+
+        address universalALMFactory = makeAddr('UNIVERSAL_ALM_FACTORY');
+
+        // Check error on unauthorized call to remove Universal ALM factory
+        vm.prank(signers[0]);
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__onlyProtocolManager.selector);
+        protocolFactory.removeUniversalALMFactory(universalALMFactory);
+
+        // Check error on invalid Universal ALM factory address
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__zeroAddress.selector);
+        protocolFactory.removeUniversalALMFactory(ZERO_ADDRESS);
+
+        protocolFactory.removeUniversalALMFactory(universalALMFactory);
+        // Check Universal ALM factory is removed correctly
+        assertEq(protocolFactory.getUniversalALMFactories().length, 0);
+
+        // Check error on Universal ALM factory already removed
+        vm.expectRevert(ProtocolFactory.ProtocolFactory___removeFactory_notWhitelisted.selector);
+        protocolFactory.removeUniversalALMFactory(universalALMFactory);
+    }
+
+    function test_removeSovereignALMFactory() public {
+        test_addSovereignALMFactory();
+
+        address sovereignALMFactory = makeAddr('SOVEREIGN_ALM_FACTORY');
+
+        // Check error on unauthorized call to remove Sovereign ALM factory
+        vm.prank(signers[0]);
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__onlyProtocolManager.selector);
+        protocolFactory.removeSovereignALMFactory(sovereignALMFactory);
+
+        // Check error on invalid Sovereign ALM factory address
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__zeroAddress.selector);
+        protocolFactory.removeSovereignALMFactory(ZERO_ADDRESS);
+
+        protocolFactory.removeSovereignALMFactory(sovereignALMFactory);
+        // Check Sovereign ALM factory is removed correctly
+        assertEq(protocolFactory.getSovereignALMFactories().length, 0);
+
+        // Check error on Sovereign ALM factory already removed
+        vm.expectRevert(ProtocolFactory.ProtocolFactory___removeFactory_notWhitelisted.selector);
+        protocolFactory.removeSovereignALMFactory(sovereignALMFactory);
+    }
+
+    function test_removeSwapFeeModuleFactory() public {
+        test_addSwapFeeModuleFactory();
+
+        address swapFeeModuleFactory = makeAddr('SWAP_FEE_MODULE_FACTORY');
+
+        // Check error on unauthorized call to remove Swap Fee Module factory
+        vm.prank(signers[0]);
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__onlyProtocolManager.selector);
+        protocolFactory.removeSwapFeeModuleFactory(swapFeeModuleFactory);
+
+        // Check error on invalid Swap Fee Module factory address
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__zeroAddress.selector);
+        protocolFactory.removeSwapFeeModuleFactory(ZERO_ADDRESS);
+
+        protocolFactory.removeSwapFeeModuleFactory(swapFeeModuleFactory);
+        // Check Swap Fee Module factory is removed correctly
+        assertEq(protocolFactory.getSwapFeeModuleFactories().length, 0);
+
+        // Check error on Swap Fee Module factory already removed
+        vm.expectRevert(ProtocolFactory.ProtocolFactory___removeFactory_notWhitelisted.selector);
+        protocolFactory.removeSwapFeeModuleFactory(swapFeeModuleFactory);
+    }
+
+    function test_removeUniversalOracleModuleFactory() public {
+        test_addUniversalOracleModuleFactory();
+
+        address universalOracleModuleFactory = makeAddr('UNIVERSAL_ORACLE_MODULE_FACTORY');
+
+        // Check error on unauthorized call to remove Universal Oracle Module factory
+        vm.prank(signers[0]);
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__onlyProtocolManager.selector);
+        protocolFactory.removeUniversalOracleModuleFactory(universalOracleModuleFactory);
+
+        // Check error on invalid Universal Oracle Module factory address
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__zeroAddress.selector);
+        protocolFactory.removeUniversalOracleModuleFactory(ZERO_ADDRESS);
+
+        protocolFactory.removeUniversalOracleModuleFactory(universalOracleModuleFactory);
+        // Check Universal Oracle Module factory is removed correctly
+        assertEq(protocolFactory.getUniversalOracleModuleFactories().length, 0);
+
+        // Check error on Universal Oracle Module factory already removed
+        vm.expectRevert(ProtocolFactory.ProtocolFactory___removeFactory_notWhitelisted.selector);
+        protocolFactory.removeUniversalOracleModuleFactory(universalOracleModuleFactory);
+    }
+
+    function test_removeSovereignOracleModuleFactory() public {
+        test_addSovereignOracleModuleFactory();
+
+        address sovereignOracleModuleFactory = makeAddr('SOVEREIGN_ORACLE_MODULE_FACTORY');
+
+        // Check error on unauthorized call to remove Sovereign Oracle Module factory
+        vm.prank(signers[0]);
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__onlyProtocolManager.selector);
+        protocolFactory.removeSovereignOracleModuleFactory(sovereignOracleModuleFactory);
+
+        // Check error on invalid Sovereign Oracle Module factory address
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__zeroAddress.selector);
+        protocolFactory.removeSovereignOracleModuleFactory(ZERO_ADDRESS);
+
+        protocolFactory.removeSovereignOracleModuleFactory(sovereignOracleModuleFactory);
+        // Check Sovereign Oracle Module factory is removed correctly
+        assertEq(protocolFactory.getSovereignOracleModuleFactories().length, 0);
+
+        // Check error on Sovereign Oracle Module factory already removed
+        vm.expectRevert(ProtocolFactory.ProtocolFactory___removeFactory_notWhitelisted.selector);
+        protocolFactory.removeSovereignOracleModuleFactory(sovereignOracleModuleFactory);
+    }
 }
