@@ -498,7 +498,8 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
 
         // Check Sovereign Gauge is deployed correctly
         address gauge = protocolFactory.deploySovereignGauge(pool, gaugeManager);
-        assertEq(gauge, makeAddr('GAUGE'));
+        // For testing purposes, we do not deploy any contract
+        assertEq(gauge, makeAddr('NO_CONTRACT_DEPLOYMENT'));
         assertEq(protocolFactory.gaugeByPool(pool), gauge);
         assertEq(protocolFactory.poolByGauge(gauge), pool);
 
@@ -537,5 +538,86 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         args.token0 = address(token0);
         pool = protocolFactory.deploySovereignPool(args);
         assertEq(protocolFactory.isValidSovereignPool(pool), true);
+    }
+
+    function test_deploySovereignOracleForPool() public {
+        address fakePool = makeAddr('FAKE_POOL');
+        address fakeModuleFactory = makeAddr('FAKE_MODULE_FACTORY');
+
+        // Check error on invalid Sovereign Pool
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__invalidSovereignPool.selector);
+        protocolFactory.deploySovereignOracleForPool(fakePool, fakeModuleFactory, new bytes(0));
+
+        address pool = test_deploySovereignPool();
+        // Check error on invalid Sovereign Oracle Module factory
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__invalidSovereignOracleModuleFactory.selector);
+        protocolFactory.deploySovereignOracleForPool(pool, fakeModuleFactory, new bytes(0));
+
+        // Set Sovereign Oracle module factory as this contract
+        protocolFactory.addSovereignOracleModuleFactory(address(this));
+
+        // Check Sovereign Oracle module is deployed correctly
+        setIsDeployment(true);
+        address sovereignOracleModule = protocolFactory.deploySovereignOracleForPool(
+            pool,
+            address(this),
+            abi.encode(address(this), 12)
+        );
+        assertEq(protocolFactory.sovereignOracleModuleNonce(), 1);
+        assertTrue(protocolFactory.isValidSovereignOracleModule(sovereignOracleModule));
+    }
+
+    function test_deploySwapFeeModuleForPool() public {
+        address fakePool = makeAddr('FAKE_POOL');
+        address fakeModuleFactory = makeAddr('FAKE_MODULE_FACTORY');
+
+        // Check error on invalid Sovereign Pool
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__invalidValantisPool.selector);
+        protocolFactory.deploySwapFeeModuleForPool(fakePool, fakeModuleFactory, new bytes(0));
+
+        address pool = test_deploySovereignPool();
+        // Check error on invalid Swap Fee Module factory
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__invalidSwapFeeModuleFactory.selector);
+        protocolFactory.deploySwapFeeModuleForPool(pool, fakeModuleFactory, new bytes(0));
+
+        // Set Swap Fee Module module factory as this contract
+        protocolFactory.addSwapFeeModuleFactory(address(this));
+
+        // Check Swap Fee module is deployed correctly
+        setIsDeployment(true);
+        address swapFeeModule = protocolFactory.deploySwapFeeModuleForPool(
+            pool,
+            address(this),
+            abi.encode(address(this), 12)
+        );
+        assertEq(protocolFactory.swapFeeModuleNonce(), 1);
+        assertTrue(protocolFactory.isValidSwapFeeModule(swapFeeModule));
+    }
+
+    function test_deployALMPositionForSovereignPool() public {
+        address fakePool = makeAddr('FAKE_POOL');
+        address fakeModuleFactory = makeAddr('FAKE_MODULE_FACTORY');
+
+        // Check error on invalid Sovereign Pool
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__invalidSovereignPool.selector);
+        protocolFactory.deployALMPositionForSovereignPool(fakePool, fakeModuleFactory, new bytes(0));
+
+        address pool = test_deploySovereignPool();
+        // Check error on invalid ALM factory
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__invalidALMFactory.selector);
+        protocolFactory.deployALMPositionForSovereignPool(pool, fakeModuleFactory, new bytes(0));
+
+        // Set ALM factory as this contract
+        protocolFactory.addSovereignALMFactory(address(this));
+
+        // Check Sovereign ALM is deployed correctly
+        setIsDeployment(true);
+        address sovereignALM = protocolFactory.deployALMPositionForSovereignPool(
+            pool,
+            address(this),
+            abi.encode(address(this), 12)
+        );
+        assertEq(protocolFactory.almNonce(), 1);
+        assertTrue(protocolFactory.isValidSovereignALMPosition(sovereignALM));
     }
 }

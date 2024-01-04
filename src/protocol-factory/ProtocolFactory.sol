@@ -44,6 +44,7 @@ contract ProtocolFactory is IProtocolFactory {
     error ProtocolFactory__invalidSwapFeeModuleFactory();
     error ProtocolFactory__invalidUniversalOracleModuleFactory();
     error ProtocolFactory__invalidUniversalPool();
+    error ProtocolFactory__invalidValantisPool();
     error ProtocolFactory__zeroAddress();
     error ProtocolFactory__addressWithContract();
     error ProtocolFactory__invalidDeployment();
@@ -532,11 +533,7 @@ contract ProtocolFactory is IProtocolFactory {
         bool isValidSovereignPool_ = _isValidSovereignPool(_pool);
 
         if (!isValidUniversalPool_ && !isValidSovereignPool_) {
-            if (!isValidUniversalPool_) {
-                revert ProtocolFactory__invalidUniversalPool();
-            } else {
-                revert ProtocolFactory__invalidSovereignPool();
-            }
+            revert ProtocolFactory__invalidValantisPool();
         }
 
         if (!_swapFeeModuleFactories.contains(_swapFeeModuleFactory)) {
