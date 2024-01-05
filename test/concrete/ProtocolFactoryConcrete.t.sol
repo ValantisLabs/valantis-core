@@ -685,6 +685,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
 
         // Check Universal Pool is deployed correctly
         pool = protocolFactory.deployUniversalPool(address(token0), address(token1), address(this), 0);
+        IUniversalPool poolInterface = IUniversalPool(pool);
         PoolState memory poolState = PoolState({
             poolManagerFeeBips: 0,
             feeProtocol0: 0,
@@ -696,7 +697,8 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
             universalOracle: address(0),
             gauge: address(0)
         });
-        IUniversalPool(pool).initializeTick(2, poolState);
+        poolInterface.initializeTick(2, poolState);
+        assertEq(poolInterface.spotPriceTick(), 2);
         assertEq(protocolFactory.isValidUniversalPool(pool), true);
     }
 
