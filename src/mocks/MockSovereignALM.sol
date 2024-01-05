@@ -114,6 +114,11 @@ contract MockSovereignALM is ISovereignALM {
         bytes calldata,
         bytes calldata
     ) external override onlyPool returns (ALMLiquidityQuote memory) {
+        if (_almLiquidityQuotePoolInput.amountInMinusFee == 0) {
+            ALMLiquidityQuote memory emptyQuote;
+            return emptyQuote;
+        }
+
         uint256 reserveIn;
         uint256 reserveOut;
 

@@ -10,6 +10,7 @@ solc = "0.8.19"
 [profile.default.invariant]
 runs = 128
 depth = 256
+fail_on_revert = true
 
 [fuzz]
 max_test_rejects = 2_147_483_648

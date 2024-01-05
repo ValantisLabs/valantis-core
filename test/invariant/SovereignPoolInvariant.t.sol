@@ -31,7 +31,6 @@ contract SovereignPoolInvariantTest is InvariantBase, SovereignPoolBase {
         handlerSelectors[4] = this.claimPoolManagerFees.selector;
         handlerSelectors[5] = this.claimProtocolFees.selector;
         handlerSelectors[6] = this.setSwapFeeBips.selector;
-        handlerSelectors[7] = this.removeSwapFeeModule.selector;
 
         uint256[] memory numbers = new uint256[](8);
         numbers[0] = 50;
@@ -41,7 +40,6 @@ contract SovereignPoolInvariantTest is InvariantBase, SovereignPoolBase {
         numbers[4] = 10;
         numbers[5] = 10;
         numbers[6] = 10;
-        numbers[7] = 10;
 
         _setupSelectors(address(this), handlerSelectors, numbers);
 
@@ -68,13 +66,21 @@ contract SovereignPoolInvariantTest is InvariantBase, SovereignPoolBase {
     function _preparePool(SovereignPoolConstructorArgs memory args) internal returns (SovereignPool newPool) {
         newPool = this.deploySovereignPool(protocolFactory, args);
         _addToContractsToApprove(address(newPool));
+
         address alm = MockSovereignALMHelper.deploySovereignALM(address(newPool));
         _addToContractsToApprove(address(alm));
+
+        MockSovereignALMHelper.setSovereignVault(alm);
+
         vm.prank(POOL_MANAGER);
         newPool.setALM(alm);
 
         vm.prank(address(protocolFactory));
         newPool.setGauge(GAUGE);
+
+        address swapFeeModule = MockSwapFeeModuleHelper.deployMockSwapFeeModule();
+        vm.prank(POOL_MANAGER);
+        newPool.setSwapFeeModule(swapFeeModule);
     }
 
     function _randomPool(uint256 flag) internal {
@@ -120,6 +126,12 @@ contract SovereignPoolInvariantTest is InvariantBase, SovereignPoolBase {
 
         _randomPool(poolFlag);
 
+        (uint256 reserve0, uint256 reserve1) = pool.getReserves();
+
+        if ((isZeroToOne && reserve1 == 0) || (!isZeroToOne && reserve0 == 0)) {
+            return;
+        }
+
         address USER = _randomUser(userFlag);
 
         if (isZeroToOne) {
@@ -127,6 +139,7 @@ contract SovereignPoolInvariantTest is InvariantBase, SovereignPoolBase {
         } else {
             _setupBalanceForUser(USER, address(token1), amountIn);
         }
+
         address swapTokenOut = isZeroToOne ? pool.token1() : pool.token0();
         vm.prank(USER);
 
@@ -175,18 +188,7 @@ contract SovereignPoolInvariantTest is InvariantBase, SovereignPoolBase {
 
         _randomPool(poolFlag);
 
-        if (pool.swapFeeModule() == address(0)) {
-            vm.prank(POOL_MANAGER);
-            pool.setSwapFeeModule(MockSwapFeeModuleHelper.deployMockSwapFeeModule());
-        }
-
         MockSwapFeeModuleHelper.setSwapFeeBips(pool.swapFeeModule(), swapFeeBips);
-    }
-
-    function removeSwapFeeModule(uint256 poolFlag) external {
-        _randomPool(poolFlag);
-        vm.prank(POOL_MANAGER);
-        pool.setSwapFeeModule(ZERO_ADDRESS);
     }
 
     /************************************************

@@ -32,4 +32,8 @@ library MockSovereignALMHelper {
     function deploySovereignALM(address pool) internal returns (address alm) {
         alm = address(new MockSovereignALM(pool));
     }
+
+    function setSovereignVault(address alm) internal {
+        MockSovereignALM(alm).setSovereignVault();
+    }
 }
