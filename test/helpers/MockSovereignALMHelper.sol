@@ -24,4 +24,12 @@ library MockSovereignALMHelper {
     function addLiquidity(address alm, uint256 amount0, uint256 amoun1) internal {
         MockSovereignALM(alm).depositLiquidity(amount0, amoun1, new bytes(0));
     }
+
+    function withdrawLiquidity(address alm, address recipient, uint256 amount0, uint256 amount1) internal {
+        MockSovereignALM(alm).withdrawLiquidity(amount0, amount1, 0, 0, recipient, new bytes(0));
+    }
+
+    function deploySovereignALM(address pool) internal returns (address alm) {
+        alm = address(new MockSovereignALM(pool));
+    }
 }

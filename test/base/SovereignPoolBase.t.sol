@@ -49,7 +49,7 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
     SovereignPool public pool;
     bytes32 emptyConstructorArgsHash;
 
-    function setUp() public {
+    function setUp() public virtual {
         _setupBase();
 
         SovereignPoolConstructorArgs memory constructorArgs = _generateDefaultConstructorArgs();
