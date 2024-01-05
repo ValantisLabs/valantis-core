@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
+import { IUniversalPool } from 'src/pools/interfaces/IUniversalPool.sol';
+import { PoolState } from 'src/pools/structs/UniversalPoolStructs.sol';
 import { ProtocolFactory } from 'src/protocol-factory/ProtocolFactory.sol';
 
 import { ProtocolFactoryBase } from 'test/base/ProtocolFactoryBase.t.sol';
@@ -508,6 +510,53 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         protocolFactory.deploySovereignGauge(pool, gaugeManager);
     }
 
+    function test_deployUniversalGauge() public {
+        address gaugeManager = address(this);
+
+        // Check error on invalid Universal Pool
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__invalidUniversalPool.selector);
+        protocolFactory.deployUniversalGauge(makeAddr('FAKE_POOL'), gaugeManager);
+
+        address pool = test_deployUniversalPool();
+
+        // Check error on unauthorized call to deploy Universal Gauge
+        vm.prank(signers[0]);
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__deployUniversalGauge_onlyPoolManager.selector);
+        protocolFactory.deployUniversalGauge(pool, gaugeManager);
+
+        // Check error on Auction Controller not set
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__auctionControllerNotSet.selector);
+        protocolFactory.deployUniversalGauge(pool, gaugeManager);
+
+        test_setAuctionController();
+
+        // Check error on Emissions Controller not set
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__emissionsControllerNotSet.selector);
+        protocolFactory.deployUniversalGauge(pool, gaugeManager);
+
+        test_setEmissionsController();
+
+        // Check error on Governance Token not set
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__valTokenNotSet.selector);
+        protocolFactory.deployUniversalGauge(pool, gaugeManager);
+
+        test_setGovernanceToken();
+
+        // Set Universal Gauge factory as this contract
+        protocolFactory.setUniversalGaugeFactory(gaugeManager);
+
+        // Check Universal Gauge is deployed correctly
+        address gauge = protocolFactory.deployUniversalGauge(pool, gaugeManager);
+        // For testing purposes, we do not deploy any contract
+        assertEq(gauge, makeAddr('NO_CONTRACT_DEPLOYMENT'));
+        assertEq(protocolFactory.gaugeByPool(pool), gauge);
+        assertEq(protocolFactory.poolByGauge(gauge), pool);
+
+        // Check error on Universal Gauge already set
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__deployUniversalGauge_alreadySet.selector);
+        protocolFactory.deployUniversalGauge(pool, gaugeManager);
+    }
+
     /************************************************
      *  Test Public Functions
      ***********************************************/
@@ -619,5 +668,89 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         );
         assertEq(protocolFactory.almNonce(), 1);
         assertTrue(protocolFactory.isValidSovereignALMPosition(sovereignALM));
+    }
+
+    function test_deployUniversalPool() public returns (address pool) {
+        _setUniversalPoolFactory();
+
+        // Check error on invalid token address
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__tokenNotContract.selector);
+        protocolFactory.deployUniversalPool(ZERO_ADDRESS, ZERO_ADDRESS, address(this), 0);
+
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__tokenNotContract.selector);
+        protocolFactory.deployUniversalPool(address(token0), ZERO_ADDRESS, address(this), 0);
+
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__tokenNotContract.selector);
+        protocolFactory.deployUniversalPool(ZERO_ADDRESS, address(token1), address(this), 0);
+
+        // Check Universal Pool is deployed correctly
+        pool = protocolFactory.deployUniversalPool(address(token0), address(token1), address(this), 0);
+        PoolState memory poolState = PoolState({
+            poolManagerFeeBips: 0,
+            feeProtocol0: 0,
+            feeProtocol1: 0,
+            feePoolManager0: 0,
+            feePoolManager1: 0,
+            swapFeeModule: address(0),
+            poolManager: address(0),
+            universalOracle: address(0),
+            gauge: address(0)
+        });
+        IUniversalPool(pool).initializeTick(2, poolState);
+        assertEq(protocolFactory.isValidUniversalPool(pool), true);
+    }
+
+    function test_deployUniversalOracleForPool() public {
+        address fakePool = makeAddr('FAKE_POOL');
+        address fakeModuleFactory = makeAddr('FAKE_MODULE_FACTORY');
+
+        // Check error on invalid Universal Pool
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__invalidUniversalPool.selector);
+        protocolFactory.deployUniversalOracleForPool(fakePool, fakeModuleFactory, new bytes(0));
+
+        address pool = test_deployUniversalPool();
+        // Check error on invalid Sovereign Oracle Module factory
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__invalidUniversalOracleModuleFactory.selector);
+        protocolFactory.deployUniversalOracleForPool(pool, fakeModuleFactory, new bytes(0));
+
+        // Set Universal Oracle module factory as this contract
+        protocolFactory.addUniversalOracleModuleFactory(address(this));
+
+        // Check Universal Oracle module is deployed correctly
+        setIsDeployment(true);
+        address universalOracleModule = protocolFactory.deployUniversalOracleForPool(
+            pool,
+            address(this),
+            abi.encode(address(this), 12)
+        );
+        assertEq(protocolFactory.universalOracleModuleNonce(), 1);
+        assertTrue(protocolFactory.isValidUniversalOracleModule(universalOracleModule));
+    }
+
+    function test_deployALMPositionForUniversalPool() public {
+        address fakePool = makeAddr('FAKE_POOL');
+        address fakeModuleFactory = makeAddr('FAKE_MODULE_FACTORY');
+
+        // Check error on invalid Universal Pool
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__invalidUniversalPool.selector);
+        protocolFactory.deployALMPositionForUniversalPool(fakePool, fakeModuleFactory, new bytes(0));
+
+        address pool = test_deployUniversalPool();
+        // Check error on invalid ALM factory
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__invalidALMFactory.selector);
+        protocolFactory.deployALMPositionForUniversalPool(pool, fakeModuleFactory, new bytes(0));
+
+        // Set ALM factory as this contract
+        protocolFactory.addUniversalALMFactory(address(this));
+
+        // Check Universal ALM is deployed correctly
+        setIsDeployment(true);
+        address universalALM = protocolFactory.deployALMPositionForUniversalPool(
+            pool,
+            address(this),
+            abi.encode(address(this), 12)
+        );
+        assertEq(protocolFactory.almNonce(), 1);
+        assertTrue(protocolFactory.isValidUniversalALMPosition(universalALM));
     }
 }

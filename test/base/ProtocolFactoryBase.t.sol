@@ -7,8 +7,14 @@ import { SovereignPoolConstructorArgs } from 'src/pools/structs/SovereignPoolStr
 import { Base } from 'test/base/Base.sol';
 import { ProtocolFactoryDeployer } from 'test/deployers/ProtocolFactoryDeployer.sol';
 import { SovereignPoolFactoryDeployer } from 'test/deployers/SovereignPoolFactoryDeployer.sol';
+import { UniversalPoolFactoryDeployer } from 'test/deployers/UniversalPoolFactoryDeployer.sol';
 
-contract ProtocolFactoryBase is Base, ProtocolFactoryDeployer, SovereignPoolFactoryDeployer {
+contract ProtocolFactoryBase is
+    Base,
+    ProtocolFactoryDeployer,
+    SovereignPoolFactoryDeployer,
+    UniversalPoolFactoryDeployer
+{
     ProtocolFactory public protocolFactory;
 
     bool public isAuctionControllerInitialized;
@@ -62,6 +68,12 @@ contract ProtocolFactoryBase is Base, ProtocolFactoryDeployer, SovereignPoolFact
         address sovereignPoolFactory = address(deploySovereignPoolFactory());
         protocolFactory.setSovereignPoolFactory(sovereignPoolFactory);
         assertEq(protocolFactory.sovereignPoolFactory(), sovereignPoolFactory);
+    }
+
+    function _setUniversalPoolFactory() internal {
+        address universalPoolFactory = address(deployUniversalPoolFactory());
+        protocolFactory.setUniversalPoolFactory(universalPoolFactory);
+        assertEq(protocolFactory.universalPoolFactory(), universalPoolFactory);
     }
 
     function _generateSovereignPoolDeploymentArgs(
