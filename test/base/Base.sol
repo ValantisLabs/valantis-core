@@ -61,6 +61,10 @@ contract Base is Test {
         user = signers[gasleft() % signers.length];
     }
 
+    function _randomUser(uint256 flag) internal view returns (address user) {
+        user = signers[flag % signers.length];
+    }
+
     function _addToContractsToApprove(address addr) internal {
         contractToApprove.push(addr);
     }
