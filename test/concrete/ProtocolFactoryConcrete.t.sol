@@ -508,6 +508,26 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         // Check error on Sovereign Gauge already set
         vm.expectRevert(ProtocolFactory.ProtocolFactory__deploySovereignGauge_alreadySet.selector);
         protocolFactory.deploySovereignGauge(pool, gaugeManager);
+
+        // Deploy Sovereign Pool, first with this contract as the pool manager
+        SovereignPoolConstructorArgs memory args = _generateSovereignPoolDeploymentArgs(
+            address(token0),
+            address(token1),
+            address(0)
+        );
+        address poolWithoutManager = protocolFactory.deploySovereignPool(args);
+
+        // Check error on unauthorized call to pool without a pool manager
+        vm.prank(signers[0]);
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__deploySovereignGauge_onlyPoolManager.selector);
+        protocolFactory.deploySovereignGauge(poolWithoutManager, gaugeManager);
+
+        // This contract is protocol manager, hence is authorized to deploy a Gauge
+        address gaugePoolWithoutManager = protocolFactory.deploySovereignGauge(poolWithoutManager, gaugeManager);
+        // For testing purposes, we do not deploy any contract
+        assertEq(gaugePoolWithoutManager, makeAddr('NO_CONTRACT_DEPLOYMENT'));
+        assertEq(protocolFactory.gaugeByPool(poolWithoutManager), gaugePoolWithoutManager);
+        assertEq(protocolFactory.poolByGauge(gaugePoolWithoutManager), poolWithoutManager);
     }
 
     function test_deployUniversalGauge() public {
@@ -555,6 +575,44 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         // Check error on Universal Gauge already set
         vm.expectRevert(ProtocolFactory.ProtocolFactory__deployUniversalGauge_alreadySet.selector);
         protocolFactory.deployUniversalGauge(pool, gaugeManager);
+
+        // Deploy Universal Pool, first with this contract as the pool manager
+        address poolWithoutManager = protocolFactory.deployUniversalPool(
+            address(token0),
+            address(token1),
+            address(this),
+            0
+        );
+        IUniversalPool poolInterface = IUniversalPool(poolWithoutManager);
+        assertEq(poolInterface.state().poolManager, address(this));
+        PoolState memory poolState = PoolState({
+            poolManagerFeeBips: 0,
+            feeProtocol0: 0,
+            feeProtocol1: 0,
+            feePoolManager0: 0,
+            feePoolManager1: 0,
+            swapFeeModule: address(0),
+            poolManager: address(0),
+            universalOracle: address(0),
+            gauge: address(0)
+        });
+        poolInterface.initializeTick(2, poolState);
+        assertEq(poolInterface.spotPriceTick(), 2);
+        assertEq(protocolFactory.isValidUniversalPool(pool), true);
+        // Reset pool manager
+        assertEq(poolInterface.state().poolManager, address(0));
+
+        // Check error on unauthorized call to pool without a pool manager
+        vm.prank(signers[0]);
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__deployUniversalGauge_onlyPoolManager.selector);
+        protocolFactory.deployUniversalGauge(poolWithoutManager, gaugeManager);
+
+        // This contract is protocol manager, hence is authorized to deploy a Gauge
+        address gaugePoolWithoutManager = protocolFactory.deployUniversalGauge(poolWithoutManager, gaugeManager);
+        // For testing purposes, we do not deploy any contract
+        assertEq(gaugePoolWithoutManager, makeAddr('NO_CONTRACT_DEPLOYMENT'));
+        assertEq(protocolFactory.gaugeByPool(poolWithoutManager), gaugePoolWithoutManager);
+        assertEq(protocolFactory.poolByGauge(gaugePoolWithoutManager), poolWithoutManager);
     }
 
     /************************************************
@@ -587,6 +645,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         args.token0 = address(token0);
         pool = protocolFactory.deploySovereignPool(args);
         assertEq(protocolFactory.isValidSovereignPool(pool), true);
+        assertFalse(protocolFactory.isValidSovereignPool(makeAddr('FAKE_MODULE')));
     }
 
     function test_deploySovereignOracleForPool() public {
@@ -614,6 +673,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         );
         assertEq(protocolFactory.sovereignOracleModuleNonce(), 1);
         assertTrue(protocolFactory.isValidSovereignOracleModule(sovereignOracleModule));
+        assertFalse(protocolFactory.isValidSovereignOracleModule(makeAddr('FAKE_MODULE')));
     }
 
     function test_deploySwapFeeModuleForPool() public {
@@ -641,6 +701,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         );
         assertEq(protocolFactory.swapFeeModuleNonce(), 1);
         assertTrue(protocolFactory.isValidSwapFeeModule(swapFeeModule));
+        assertFalse(protocolFactory.isValidSwapFeeModule(makeAddr('FAKE_MODULE')));
     }
 
     function test_deployALMPositionForSovereignPool() public {
@@ -668,6 +729,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         );
         assertEq(protocolFactory.almNonce(), 1);
         assertTrue(protocolFactory.isValidSovereignALMPosition(sovereignALM));
+        assertFalse(protocolFactory.isValidSovereignALMPosition(makeAddr('FAKE_MODULE')));
     }
 
     function test_deployUniversalPool() public returns (address pool) {
@@ -693,13 +755,14 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
             feePoolManager0: 0,
             feePoolManager1: 0,
             swapFeeModule: address(0),
-            poolManager: address(0),
+            poolManager: address(this),
             universalOracle: address(0),
             gauge: address(0)
         });
         poolInterface.initializeTick(2, poolState);
         assertEq(poolInterface.spotPriceTick(), 2);
-        assertEq(protocolFactory.isValidUniversalPool(pool), true);
+        assertTrue(protocolFactory.isValidUniversalPool(pool));
+        assertFalse(protocolFactory.isValidUniversalPool(makeAddr('FAKE_MODULE')));
     }
 
     function test_deployUniversalOracleForPool() public {
@@ -727,6 +790,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         );
         assertEq(protocolFactory.universalOracleModuleNonce(), 1);
         assertTrue(protocolFactory.isValidUniversalOracleModule(universalOracleModule));
+        assertFalse(protocolFactory.isValidUniversalOracleModule(makeAddr('FAKE_MODULE')));
     }
 
     function test_deployALMPositionForUniversalPool() public {
@@ -754,5 +818,25 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         );
         assertEq(protocolFactory.almNonce(), 1);
         assertTrue(protocolFactory.isValidUniversalALMPosition(universalALM));
+        assertFalse(protocolFactory.isValidUniversalALMPosition(makeAddr('FAKE_MODULE')));
+    }
+
+    function test_invalidCreate2Deployment() public {
+        // Set Universal Oracle module factory as this contract
+        protocolFactory.addUniversalOracleModuleFactory(address(this));
+
+        address pool = test_deployUniversalPool();
+
+        // Check error on address already with contract
+        setCreate2AddressWithContract(true);
+
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__addressWithContract.selector);
+        protocolFactory.deployUniversalOracleForPool(pool, address(this), abi.encode(address(this), 12));
+
+        setCreate2AddressWithContract(false);
+
+        // Check error on contract not deployed
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__noContractDeployed.selector);
+        protocolFactory.deployUniversalOracleForPool(pool, address(this), abi.encode(address(this), 12));
     }
 }

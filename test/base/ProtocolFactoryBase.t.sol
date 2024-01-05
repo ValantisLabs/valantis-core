@@ -21,6 +21,8 @@ contract ProtocolFactoryBase is
 
     bool public isDeployment;
 
+    bool public create2AddressWithContract;
+
     function setUp() public {
         _setupBase();
 
@@ -31,21 +33,29 @@ contract ProtocolFactoryBase is
         isDeployment = _isDeployment;
     }
 
+    function setCreate2AddressWithContract(bool _create2AddressWithContract) public {
+        create2AddressWithContract = _create2AddressWithContract;
+    }
+
     function getCreate2Address(bytes32 _salt, bytes calldata _constructorArgs) external view returns (address) {
-        bool hasConstructorArgs = keccak256(_constructorArgs) != keccak256(new bytes(0));
+        if (create2AddressWithContract) {
+            return address(this);
+        } else {
+            bool hasConstructorArgs = keccak256(_constructorArgs) != keccak256(new bytes(0));
 
-        if (!hasConstructorArgs) revert('ProtocolFactoryBase: Only tests with non-empty constructor args');
+            if (!hasConstructorArgs) revert('ProtocolFactoryBase: Only tests with non-empty constructor args');
 
-        bytes32 create2Hash = keccak256(
-            abi.encodePacked(
-                bytes1(0xff),
-                address(this),
-                _salt,
-                keccak256(abi.encodePacked(type(ProtocolFactory).creationCode, _constructorArgs))
-            )
-        );
+            bytes32 create2Hash = keccak256(
+                abi.encodePacked(
+                    bytes1(0xff),
+                    address(this),
+                    _salt,
+                    keccak256(abi.encodePacked(type(ProtocolFactory).creationCode, _constructorArgs))
+                )
+            );
 
-        return address(uint160(uint256(create2Hash)));
+            return address(uint160(uint256(create2Hash)));
+        }
     }
 
     function initiateAuctionController() external {
