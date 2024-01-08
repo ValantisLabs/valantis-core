@@ -29,8 +29,26 @@ contract ConstantSwapFeeModuleFactory is IValantisDeployer {
      *  EXTERNAL FUNCTIONS
      ***********************************************/
 
-    function getContractBytecode() external pure override returns (bytes memory) {
-        return type(ConstantSwapFeeModule).creationCode;
+    function getCreate2Address(
+        bytes32 _salt,
+        bytes calldata _constructorArgs
+    ) external view override returns (address) {
+        bool hasConstructorArgs = keccak256(_constructorArgs) != keccak256(new bytes(0));
+
+        bytes32 create2Hash = keccak256(
+            abi.encodePacked(
+                bytes1(0xff),
+                address(this),
+                _salt,
+                keccak256(
+                    hasConstructorArgs
+                        ? abi.encodePacked(type(ConstantSwapFeeModule).creationCode, _constructorArgs)
+                        : type(ConstantSwapFeeModule).creationCode
+                )
+            )
+        );
+
+        return address(uint160(uint256(create2Hash)));
     }
 
     function deploy(bytes32 _salt, bytes calldata _constructorArgs) external override returns (address deployment) {

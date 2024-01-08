@@ -39,19 +39,7 @@ interface IProtocolFactory {
     // solhint-disable-next-line func-name-mixedcase
     function BLOCK_TIME() external view returns (uint256);
 
-    function universalALMCodeHashes(address _alm) external view returns (bytes32);
-
-    function sovereignALMCodeHashes(address _alm) external view returns (bytes32);
-
-    function swapFeeModuleCodeHashes(address _swapFeeModule) external view returns (bytes32);
-
-    function universalOracleModuleCodeHashes(address _universalOracleModule) external view returns (bytes32);
-
-    function sovereignOracleModuleCodeHashes(address _sovereignOracleModule) external view returns (bytes32);
-
     function almFactories(address _almPosition) external view returns (address);
-
-    function almPositionPools(address _almPosition) external view returns (address);
 
     function swapFeeModules(address _pool) external view returns (address);
 
@@ -100,6 +88,16 @@ interface IProtocolFactory {
     function isValidUniversalPool(address _pool) external view returns (bool);
 
     function isValidSovereignPool(address _pool) external view returns (bool);
+
+    function isValidUniversalALMFactory(address _almFactory) external view returns (bool);
+
+    function isValidSovereignALMFactory(address _almFactory) external view returns (bool);
+
+    function isValidSwapFeeModuleFactory(address _swapFeeModuleFactory) external view returns (bool);
+
+    function isValidUniversalOracleModuleFactory(address _universalOracleModuleFactory) external view returns (bool);
+
+    function isValidSovereignOracleModuleFactory(address _sovereignOracleModuleFactory) external view returns (bool);
 
     function isValidUniversalALMPosition(address _almPosition) external view returns (bool);
 
