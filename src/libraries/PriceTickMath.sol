@@ -11,8 +11,9 @@ import { Constants } from 'src/utils/Constants.sol';
             pre-computed powers of 2 for base 1.0001.
  */
 library PriceTickMath {
-    error PriceTickMath__getPriceAtTick_invalidPriceTick();
-    error PriceTickMath__getTickAtPrice_invalidPrice();
+    /************************************************
+     *  CONSTANTS
+     ***********************************************/
 
     int24 internal constant MIN_PRICE_TICK = -720909;
     int24 internal constant MAX_PRICE_TICK = 720909;
@@ -22,6 +23,18 @@ library PriceTickMath {
      */
     uint256 internal constant MIN_PRICE = 16777401;
     uint256 internal constant MAX_PRICE = 6901670243043972986255200373924895033102563660822112080378694173663318;
+
+    /************************************************
+     *  CUSTOM ERRORS
+     ***********************************************/
+
+    error PriceTickMath__getPriceAtTick_invalidPriceTick();
+    error PriceTickMath__getTickAtPrice_invalidPrice();
+
+
+    /************************************************
+     *  FUNCTIONS
+     ***********************************************/
 
     /**
         @notice Returns Q128.128 price at `tick`.
