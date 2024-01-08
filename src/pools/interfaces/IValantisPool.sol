@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { IFlashBorrower } from 'src/pools/interfaces/IFlashBorrower.sol';
+import { IFlashBorrower } from './IFlashBorrower.sol';
 
 interface IValantisPool {
     /************************************************

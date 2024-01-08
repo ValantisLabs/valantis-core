@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { SovereignPoolConstructorArgs } from 'src/pools/structs/SovereignPoolStructs.sol';
+import { SovereignPoolConstructorArgs } from '../../pools/structs/SovereignPoolStructs.sol';
 
 interface IProtocolFactory {
     event GovernanceTokenSet(address governanceToken);

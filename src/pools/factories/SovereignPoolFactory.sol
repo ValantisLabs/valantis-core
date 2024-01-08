@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { IPoolDeployer } from 'src/protocol-factory/interfaces/IPoolDeployer.sol';
+import { IPoolDeployer } from '../../protocol-factory/interfaces/IPoolDeployer.sol';
 
-import { SovereignPool } from 'src/pools/SovereignPool.sol';
-import { SovereignPoolConstructorArgs } from 'src/pools/structs/SovereignPoolStructs.sol';
+import { SovereignPool } from '../SovereignPool.sol';
+import { SovereignPoolConstructorArgs } from '../structs/SovereignPoolStructs.sol';
 
 contract SovereignPoolFactory is IPoolDeployer {
     /************************************************

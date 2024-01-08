@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { IERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
-import { Math } from 'lib/openzeppelin-contracts/contracts/utils/math/Math.sol';
-import { SafeERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import { IERC20 } from '../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
+import { Math } from '../../lib/openzeppelin-contracts/contracts/utils/math/Math.sol';
+import { SafeERC20 } from '../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 
-import { ISovereignALM } from 'src/ALM/interfaces/ISovereignALM.sol';
-import { ALMLiquidityQuoteInput, ALMLiquidityQuote } from 'src/ALM/structs/SovereignALMStructs.sol';
-import { ISovereignPool } from 'src/pools/interfaces/ISovereignPool.sol';
-import { MockSovereignVault } from 'src/mocks/MockSovereignVault.sol';
+import { ISovereignALM } from '../ALM/interfaces/ISovereignALM.sol';
+import { ALMLiquidityQuoteInput, ALMLiquidityQuote } from '../ALM/structs/SovereignALMStructs.sol';
+import { ISovereignPool } from '../pools/interfaces/ISovereignPool.sol';
+import { MockSovereignVault } from './MockSovereignVault.sol';
 
 contract MockSovereignALM is ISovereignALM {
     using SafeERC20 for IERC20;

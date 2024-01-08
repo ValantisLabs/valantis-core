@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { IValantisPool } from 'src/pools/interfaces/IValantisPool.sol';
-import { PoolLocks } from 'src/pools/structs/ReentrancyGuardStructs.sol';
-import { SovereignPoolSwapContextData, SovereignPoolSwapParams } from 'src/pools/structs/SovereignPoolStructs.sol';
+import { IValantisPool } from '../interfaces/IValantisPool.sol';
+import { PoolLocks } from '../structs/ReentrancyGuardStructs.sol';
+import { SovereignPoolSwapContextData, SovereignPoolSwapParams } from '../structs/SovereignPoolStructs.sol';
 
 interface ISovereignPool is IValantisPool {
     event SwapFeeModuleSet(address swapFeeModule);

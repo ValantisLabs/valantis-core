@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { Slot0, ALMPosition, ALMStatus, PoolState, SwapParams } from 'src/pools/structs/UniversalPoolStructs.sol';
-import { IValantisPool } from 'src/pools/interfaces/IValantisPool.sol';
-import { PoolLocks } from 'src/pools/structs/ReentrancyGuardStructs.sol';
-import { ALMReserves } from 'src/ALM/structs/UniversalALMStructs.sol';
+import { Slot0, ALMPosition, ALMStatus, PoolState, SwapParams } from '../structs/UniversalPoolStructs.sol';
+import { IValantisPool } from '../interfaces/IValantisPool.sol';
+import { PoolLocks } from '../structs/ReentrancyGuardStructs.sol';
+import { ALMReserves } from '../../ALM/structs/UniversalALMStructs.sol';
 
 interface IUniversalPool is IValantisPool {
     /************************************************

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { ALMCachedLiquidityQuote, ALMReserves } from 'src/ALM/structs/UniversalALMStructs.sol';
-import { IUniversalOracle } from 'src/oracles/interfaces/IUniversalOracle.sol';
-import { SwapFeeModuleData } from 'src/swap-fee-modules/interfaces/ISwapFeeModule.sol';
+import { ALMCachedLiquidityQuote, ALMReserves } from '../../ALM/structs/UniversalALMStructs.sol';
+import { IUniversalOracle } from '../../oracles/interfaces/IUniversalOracle.sol';
+import { SwapFeeModuleData } from '../../swap-fee-modules/interfaces/ISwapFeeModule.sol';
 
 struct Slot0 {
     bool isMetaALM;

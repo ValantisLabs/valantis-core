@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { IERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
+import { IERC20 } from '../../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 
-import { ISwapFeeModule } from 'src/swap-fee-modules/interfaces/ISwapFeeModule.sol';
+import { ISwapFeeModule } from '../../swap-fee-modules/interfaces/ISwapFeeModule.sol';
 
 struct SovereignPoolConstructorArgs {
     address token0;

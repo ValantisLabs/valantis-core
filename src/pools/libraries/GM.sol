@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { Math } from 'lib/openzeppelin-contracts/contracts/utils/math/Math.sol';
+import { Math } from '../../../lib/openzeppelin-contracts/contracts/utils/math/Math.sol';
 
 import {
     Slot0,
@@ -12,18 +12,17 @@ import {
     UnderlyingALMQuote,
     PoolState,
     SwapParams
-} from 'src/pools/structs/UniversalPoolStructs.sol';
-import { EnumerableALMMap } from 'src/libraries/EnumerableALMMap.sol';
-import { StateLib } from 'src/pools/libraries/StateLib.sol';
-
-import { IUniversalALM } from 'src/ALM/interfaces/IUniversalALM.sol';
+} from '../structs/UniversalPoolStructs.sol';
+import { EnumerableALMMap } from '../../libraries/EnumerableALMMap.sol';
+import { StateLib } from './StateLib.sol';
+import { IUniversalALM } from '../../ALM/interfaces/IUniversalALM.sol';
 import {
     ALMLiquidityQuotePoolInputs,
     ALMLiquidityQuote,
     ALMCachedLiquidityQuote,
     ALMReserves
-} from 'src/ALM/structs/UniversalALMStructs.sol';
-import { PriceTickMath } from 'src/libraries/PriceTickMath.sol';
+} from '../../ALM/structs/UniversalALMStructs.sol';
+import { PriceTickMath } from '../../libraries/PriceTickMath.sol';
 
 /**
     @notice Library of helper functions.

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { IPoolDeployer } from 'src/protocol-factory/interfaces/IPoolDeployer.sol';
+import { IPoolDeployer } from './IPoolDeployer.sol';
 
 /**
     @notice Valantis Deployer Factory interfaces.

@@ -1,17 +1,17 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { Math } from 'lib/openzeppelin-contracts/contracts/utils/math/Math.sol';
-import { IERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
-import { SafeERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import { Math } from '../../lib/openzeppelin-contracts/contracts/utils/math/Math.sol';
+import { IERC20 } from '../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
+import { SafeERC20 } from '../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 
-import { UniversalPoolReentrancyGuard } from 'src/utils/UniversalPoolReentrancyGuard.sol';
-import { PoolLocks } from 'src/pools/structs/ReentrancyGuardStructs.sol';
-import { IUniversalPool } from 'src/pools/interfaces/IUniversalPool.sol';
-import { IUniversalPoolSwapCallback } from 'src/pools/interfaces/IUniversalPoolSwapCallback.sol';
-import { ISwapFeeModule, SwapFeeModuleData } from 'src/swap-fee-modules/interfaces/ISwapFeeModule.sol';
-import { IUniversalOracle } from 'src/oracles/interfaces/IUniversalOracle.sol';
-import { IFlashBorrower } from 'src/pools/interfaces/IFlashBorrower.sol';
+import { UniversalPoolReentrancyGuard } from '../utils/UniversalPoolReentrancyGuard.sol';
+import { PoolLocks } from './structs/ReentrancyGuardStructs.sol';
+import { IUniversalPool } from './interfaces/IUniversalPool.sol';
+import { IUniversalPoolSwapCallback } from './interfaces/IUniversalPoolSwapCallback.sol';
+import { ISwapFeeModule, SwapFeeModuleData } from '../swap-fee-modules/interfaces/ISwapFeeModule.sol';
+import { IUniversalOracle } from '../oracles/interfaces/IUniversalOracle.sol';
+import { IFlashBorrower } from '../pools/interfaces/IFlashBorrower.sol';
 
 import {
     Slot0,
@@ -22,15 +22,13 @@ import {
     InternalSwapALMState,
     PoolState,
     SwapParams
-} from 'src/pools/structs/UniversalPoolStructs.sol';
-import { ALMReserves } from 'src/ALM/structs/UniversalALMStructs.sol';
-
-import { EnumerableALMMap } from 'src/libraries/EnumerableALMMap.sol';
-import { StateLib } from 'src/pools/libraries/StateLib.sol';
-import { GM } from 'src/pools/libraries/GM.sol';
-import { ALMLib } from 'src/pools/libraries/ALMLib.sol';
-
-import { PriceTickMath } from 'src/libraries/PriceTickMath.sol';
+} from './structs/UniversalPoolStructs.sol';
+import { ALMReserves } from '../ALM/structs/UniversalALMStructs.sol';
+import { EnumerableALMMap } from '../libraries/EnumerableALMMap.sol';
+import { StateLib } from './libraries/StateLib.sol';
+import { GM } from './libraries/GM.sol';
+import { ALMLib } from './libraries/ALMLib.sol';
+import { PriceTickMath } from '../libraries/PriceTickMath.sol';
 
 /**
   @title Valantis Universal Pool
@@ -250,12 +248,9 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         @notice Returns ALM position struct from `_almPositionAddress`.
         @param _almPositionAddress address of ALM position to query. 
      */
-    function getALMPositionAtAddress(address _almPositionAddress)
-        external
-        view
-        override
-        returns (ALMStatus status, ALMPosition memory)
-    {
+    function getALMPositionAtAddress(
+        address _almPositionAddress
+    ) external view override returns (ALMStatus status, ALMPosition memory) {
         return _ALMPositions.getALM(_almPositionAddress);
     }
 
@@ -266,12 +261,10 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         @dev Function always returns reserves in the form (tokenInReserves, tokenOutReserves),
              depending on the direction of the swap.
      */
-    function getALMReserves(address _almPositionAddress, bool _isZeroToOne)
-        external
-        view
-        override
-        returns (ALMReserves memory)
-    {
+    function getALMReserves(
+        address _almPositionAddress,
+        bool _isZeroToOne
+    ) external view override returns (ALMReserves memory) {
         return _ALMPositions.getALMReserves(_isZeroToOne, _almPositionAddress);
     }
 
@@ -388,12 +381,10 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         @param _almAddress address of the ALM.
         @param _feeShare in BIPS.
      */
-    function setMetaALMFeeShare(address _almAddress, uint64 _feeShare)
-        external
-        override
-        nonReentrantGlobal
-        onlyPoolManager
-    {
+    function setMetaALMFeeShare(
+        address _almAddress,
+        uint64 _feeShare
+    ) external override nonReentrantGlobal onlyPoolManager {
         _ALMPositions.setMetaALMFeeShare(_almAddress, _feeShare);
     }
 
@@ -404,7 +395,10 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         @param _feeProtocol0Bips Percent of `token0` fees to be shared with protocol.
         @param _feeProtocol1Bips Percent of `token1` fees to be shared with protocol.
      */
-    function claimPoolManagerFees(uint256 _feeProtocol0Bips, uint256 _feeProtocol1Bips)
+    function claimPoolManagerFees(
+        uint256 _feeProtocol0Bips,
+        uint256 _feeProtocol1Bips
+    )
         external
         override
         nonReentrantGlobal
@@ -640,7 +634,9 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
     /**
         @notice Validates all swap input parameters and creates the SwapCache, almStates and baseALMQuotes arrays.
      */
-    function _processSwapParams(SwapParams calldata swapParams)
+    function _processSwapParams(
+        SwapParams calldata swapParams
+    )
         private
         view
         returns (

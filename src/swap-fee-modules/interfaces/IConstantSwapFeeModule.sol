@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { ISwapFeeModule } from 'src/swap-fee-modules/interfaces/ISwapFeeModule.sol';
+import { ISwapFeeModule } from './ISwapFeeModule.sol';
 
 interface IConstantSwapFeeModule is ISwapFeeModule {
     function MAX_SWAP_FEE_BIPS() external view returns (uint256);

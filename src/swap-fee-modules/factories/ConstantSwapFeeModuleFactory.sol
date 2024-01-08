@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { IValantisDeployer } from 'src/protocol-factory/interfaces/IValantisDeployer.sol';
-import { ConstantSwapFeeModule } from 'src/swap-fee-modules/ConstantSwapFeeModule.sol';
+import { IValantisDeployer } from '../../protocol-factory/interfaces/IValantisDeployer.sol';
+import { ConstantSwapFeeModule } from '../ConstantSwapFeeModule.sol';
 
 contract ConstantSwapFeeModuleFactory is IValantisDeployer {
     /************************************************

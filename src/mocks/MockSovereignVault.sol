@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { IERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
-import { SafeERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import { IERC20 } from '../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
+import { SafeERC20 } from '../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 
-import { ISovereignVaultMinimal } from 'src/pools/interfaces/ISovereignVaultMinimal.sol';
-import { ISovereignPool } from 'src/pools/interfaces/ISovereignPool.sol';
+import { ISovereignVaultMinimal } from '../pools/interfaces/ISovereignVaultMinimal.sol';
+import { ISovereignPool } from '../pools/interfaces/ISovereignPool.sol';
 
 contract MockSovereignVault is ISovereignVaultMinimal {
     using SafeERC20 for IERC20;

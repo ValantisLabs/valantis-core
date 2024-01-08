@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { IPoolDeployer } from 'src/protocol-factory/interfaces/IPoolDeployer.sol';
-import { UniversalPool } from 'src/pools/UniversalPool.sol';
+import { IPoolDeployer } from '../../protocol-factory/interfaces/IPoolDeployer.sol';
+import { UniversalPool } from '../UniversalPool.sol';
 
 contract UniversalPoolFactory is IPoolDeployer {
     /************************************************
