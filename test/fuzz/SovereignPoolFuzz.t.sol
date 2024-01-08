@@ -219,7 +219,6 @@ contract SovereignPoolFuzz is SovereignPoolBase {
 
     function test_flashloan(FlashloanFuzzParams memory fuzzParams) public setupPool(fuzzParams.flags) {
         fuzzParams.amount = bound(fuzzParams.amount, 1, 1e26);
-        address USER = _randomUser();
         IFlashBorrower FLASH_BORROWER = IFlashBorrower(address(this));
 
         // Set this address as ALM
@@ -248,8 +247,7 @@ contract SovereignPoolFuzz is SovereignPoolBase {
             vm.expectRevert('ERC20: insufficient allowance');
         }
 
-        vm.prank(USER);
-        pool.flashLoan(fuzzParams.isTokenZero, FLASH_BORROWER, fuzzParams.amount, abi.encode(fuzzParams.op, USER));
+        pool.flashLoan(fuzzParams.isTokenZero, FLASH_BORROWER, fuzzParams.amount, abi.encode(fuzzParams.op, address(this)));
 
         (uint256 reserve0, uint256 reserve1) = pool.getReserves();
 
