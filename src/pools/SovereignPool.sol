@@ -736,6 +736,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
                 isZeroToOne: _swapParams.isZeroToOne,
                 amountInMinusFee: swapCache.amountInWithoutFee,
                 fee: _swapParams.amountIn - swapCache.amountInWithoutFee,
+                feeInBips: swapFeeModuleData.feeInBips,
                 sender: msg.sender,
                 recipient: _swapParams.recipient,
                 tokenOutSwap: _swapParams.swapTokenOut
