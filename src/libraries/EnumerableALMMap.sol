@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { ALMReserves } from 'src/ALM/structs/UniversalALMStructs.sol';
-import { ALMPosition, ALMStatus, Slot0 } from 'src/pools/structs/UniversalPoolStructs.sol';
+import { ALMReserves } from '../ALM/structs/UniversalALMStructs.sol';
+import { ALMPosition, ALMStatus, Slot0 } from '../pools/structs/UniversalPoolStructs.sol';
 
 /**
     @title Enumerable Map for ALMPosition struct.
@@ -206,11 +206,7 @@ library EnumerableALMMap {
         @param almAddress Address of the ALM.
         @param newFeeShare New value of the fee share.
     */
-    function setMetaALMFeeShare(
-        ALMSet storage set,
-        address almAddress,
-        uint64 newFeeShare
-    ) internal {
+    function setMetaALMFeeShare(ALMSet storage set, address almAddress, uint64 newFeeShare) internal {
         if (newFeeShare > MAX_META_ALM_FEE_SHARE) {
             revert EnumerableALMMap__highMetaALMFeeShare();
         }
@@ -276,11 +272,10 @@ library EnumerableALMMap {
         @return status Status of the ALM (ACTIVE or REMOVED).
         @return almPosition ALM position struct as a storage reference.
     */
-    function getALM(ALMSet storage set, address almAddress)
-        internal
-        view
-        returns (ALMStatus status, ALMPosition storage almPosition)
-    {
+    function getALM(
+        ALMSet storage set,
+        address almAddress
+    ) internal view returns (ALMStatus status, ALMPosition storage almPosition) {
         uint256 index;
         (status, index) = _getRealIndex(set, almAddress);
         almPosition = status == ALMStatus.ACTIVE ? set._activeALMs[index] : set._removedALMs[index];

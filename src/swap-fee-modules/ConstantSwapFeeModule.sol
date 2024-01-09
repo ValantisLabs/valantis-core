@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { SwapFeeModuleData } from 'src/swap-fee-modules/interfaces/ISwapFeeModule.sol';
-import { IConstantSwapFeeModule } from 'src/swap-fee-modules/interfaces/IConstantSwapFeeModule.sol';
+import { SwapFeeModuleData } from './interfaces/ISwapFeeModule.sol';
+import { IConstantSwapFeeModule } from './interfaces/IConstantSwapFeeModule.sol';
 
 contract ConstantSwapFeeModule is IConstantSwapFeeModule {
     /************************************************

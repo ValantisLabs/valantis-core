@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { Math } from 'lib/openzeppelin-contracts/contracts/utils/math/Math.sol';
-import { IERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
-import { SafeERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import { Math } from '../../../lib/openzeppelin-contracts/contracts/utils/math/Math.sol';
+import { IERC20 } from '../../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
+import { SafeERC20 } from '../../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 
-import { ALMPosition, ALMStatus } from 'src/pools/structs/UniversalPoolStructs.sol';
-import { EnumerableALMMap } from 'src/libraries/EnumerableALMMap.sol';
-import { IUniversalALM } from 'src/ALM/interfaces/IUniversalALM.sol';
+import { ALMPosition, ALMStatus } from '../structs/UniversalPoolStructs.sol';
+import { EnumerableALMMap } from '../../libraries/EnumerableALMMap.sol';
+import { IUniversalALM } from '../../ALM/interfaces/IUniversalALM.sol';
 
 library ALMLib {
     using EnumerableALMMap for EnumerableALMMap.ALMSet;

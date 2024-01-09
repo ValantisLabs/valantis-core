@@ -1,21 +1,19 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { EnumerableSet } from 'lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol';
-import { Address } from 'lib/openzeppelin-contracts/contracts/utils/Address.sol';
+import { EnumerableSet } from '../../lib/openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol';
+import { Address } from '../../lib/openzeppelin-contracts/contracts/utils/Address.sol';
 
-import { IProtocolFactory } from 'src/protocol-factory/interfaces/IProtocolFactory.sol';
-import { IValantisDeployer } from 'src/protocol-factory/interfaces/IValantisDeployer.sol';
-import { IPoolGaugeDeployer } from 'src/protocol-factory/interfaces/IPoolGaugeDeployer.sol';
-import { IPoolDeployer } from 'src/protocol-factory/interfaces/IPoolDeployer.sol';
-
-import { ISovereignPool } from 'src/pools/interfaces/ISovereignPool.sol';
-import { IUniversalPool, PoolState } from 'src/pools/interfaces/IUniversalPool.sol';
-import { IValantisPool } from 'src/pools/interfaces/IValantisPool.sol';
-import { SovereignPoolConstructorArgs } from 'src/pools/structs/SovereignPoolStructs.sol';
-
-import { IAuctionController } from 'src/governance/auctions/interfaces/IAuctionController.sol';
-import { IEmissionsController } from 'src/governance/emissions/interfaces/IEmissionsController.sol';
+import { IProtocolFactory } from './interfaces/IProtocolFactory.sol';
+import { IValantisDeployer } from './interfaces/IValantisDeployer.sol';
+import { IPoolGaugeDeployer } from './interfaces/IPoolGaugeDeployer.sol';
+import { IPoolDeployer } from './interfaces/IPoolDeployer.sol';
+import { ISovereignPool } from '../pools/interfaces/ISovereignPool.sol';
+import { IUniversalPool, PoolState } from '../pools/interfaces/IUniversalPool.sol';
+import { IValantisPool } from '../pools/interfaces/IValantisPool.sol';
+import { SovereignPoolConstructorArgs } from '../pools/structs/SovereignPoolStructs.sol';
+import { IAuctionController } from '../governance/auctions/interfaces/IAuctionController.sol';
+import { IEmissionsController } from '../governance/emissions/interfaces/IEmissionsController.sol';
 
 contract ProtocolFactory is IProtocolFactory {
     using EnumerableSet for EnumerableSet.AddressSet;

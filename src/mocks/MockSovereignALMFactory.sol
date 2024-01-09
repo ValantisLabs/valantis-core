@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { IValantisDeployer } from 'src/protocol-factory/interfaces/IValantisDeployer.sol';
-import { MockSovereignALM } from 'src/mocks/MockSovereignALM.sol';
+import { IValantisDeployer } from '../protocol-factory/interfaces/IValantisDeployer.sol';
+import { MockSovereignALM } from './MockSovereignALM.sol';
 
 contract MockSovereignALMFactory is IValantisDeployer {
     /************************************************

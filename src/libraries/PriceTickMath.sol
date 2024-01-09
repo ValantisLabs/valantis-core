@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { Math } from 'lib/openzeppelin-contracts/contracts/utils/math/Math.sol';
+import { Math } from '../../lib/openzeppelin-contracts/contracts/utils/math/Math.sol';
 
-import { Constants } from 'src/utils/Constants.sol';
+import { Constants } from '../utils/Constants.sol';
 
 /**
     @notice Efficient implementation of price = 1.0001 ^ tick in Q128.128 format.
@@ -30,7 +30,6 @@ library PriceTickMath {
 
     error PriceTickMath__getPriceAtTick_invalidPriceTick();
     error PriceTickMath__getTickAtPrice_invalidPrice();
-
 
     /************************************************
      *  FUNCTIONS

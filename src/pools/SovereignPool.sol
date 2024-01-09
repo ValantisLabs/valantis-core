@@ -1,27 +1,27 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { Math } from 'lib/openzeppelin-contracts/contracts/utils/math/Math.sol';
-import { IERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
-import { SafeERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import { Math } from '../../lib/openzeppelin-contracts/contracts/utils/math/Math.sol';
+import { IERC20 } from '../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
+import { SafeERC20 } from '../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 
-import { Constants } from 'src/utils/Constants.sol';
-import { ReentrancyGuard } from 'src/utils/ReentrancyGuard.sol';
-import { ISwapFeeModule, SwapFeeModuleData } from 'src/swap-fee-modules/interfaces/ISwapFeeModule.sol';
-import { ISovereignPool } from 'src/pools/interfaces/ISovereignPool.sol';
-import { ISovereignPoolSwapCallback } from 'src/pools/interfaces/ISovereignPoolSwapCallback.sol';
-import { IVerifierModule } from 'src/pools/interfaces/IVerifierModule.sol';
-import { ALMLiquidityQuoteInput, ALMLiquidityQuote } from 'src/ALM/structs/SovereignALMStructs.sol';
-import { ISovereignVaultMinimal } from 'src/pools/interfaces/ISovereignVaultMinimal.sol';
-import { ISovereignALM } from 'src/ALM/interfaces/ISovereignALM.sol';
-import { ISovereignOracle } from 'src/oracles/interfaces/ISovereignOracle.sol';
+import { Constants } from '../utils/Constants.sol';
+import { ReentrancyGuard } from '../utils/ReentrancyGuard.sol';
+import { ISwapFeeModule, SwapFeeModuleData } from '../swap-fee-modules/interfaces/ISwapFeeModule.sol';
+import { ISovereignPool } from './interfaces/ISovereignPool.sol';
+import { ISovereignPoolSwapCallback } from './interfaces/ISovereignPoolSwapCallback.sol';
+import { IVerifierModule } from './interfaces/IVerifierModule.sol';
+import { ALMLiquidityQuoteInput, ALMLiquidityQuote } from '../ALM/structs/SovereignALMStructs.sol';
+import { ISovereignVaultMinimal } from './interfaces/ISovereignVaultMinimal.sol';
+import { ISovereignALM } from '../ALM/interfaces/ISovereignALM.sol';
+import { ISovereignOracle } from '../oracles/interfaces/ISovereignOracle.sol';
 import {
     SovereignPoolConstructorArgs,
     SovereignPoolSwapContextData,
     SwapCache,
     SovereignPoolSwapParams
-} from 'src/pools/structs/SovereignPoolStructs.sol';
-import { IFlashBorrower } from 'src/pools/interfaces/IFlashBorrower.sol';
+} from './structs/SovereignPoolStructs.sol';
+import { IFlashBorrower } from './interfaces/IFlashBorrower.sol';
 
 /**
     @notice Valantis Sovereign Pool

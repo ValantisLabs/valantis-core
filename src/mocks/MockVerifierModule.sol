@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { IVerifierModule } from 'src/pools/interfaces/IVerifierModule.sol';
+import { IVerifierModule } from '../pools/interfaces/IVerifierModule.sol';
 
 contract MockVerifierModule is IVerifierModule {
     /************************************************

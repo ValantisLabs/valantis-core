@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { PoolLocks, Lock } from 'src/pools/structs/ReentrancyGuardStructs.sol';
+import { PoolLocks, Lock } from '../pools/structs/ReentrancyGuardStructs.sol';
 
 /**
     @notice ReentrancyGuard for Valantis Universal Pool.

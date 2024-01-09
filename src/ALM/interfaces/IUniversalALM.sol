@@ -6,7 +6,7 @@ import {
     ALMCachedLiquidityQuote,
     ALMLiquidityQuote,
     ALMReserves
-} from 'src/ALM/structs/UniversalALMStructs.sol';
+} from '../structs/UniversalALMStructs.sol';
 
 /**
     @notice Universal ALM Interface.

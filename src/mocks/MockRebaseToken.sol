@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { ERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
-import { Math } from 'lib/openzeppelin-contracts/contracts/utils/math/Math.sol';
+import { ERC20 } from '../../lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
+import { Math } from '../../lib/openzeppelin-contracts/contracts/utils/math/Math.sol';
 
 contract MockRebaseToken is ERC20 {
     uint256 public factor = 1e18;

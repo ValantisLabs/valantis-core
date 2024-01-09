@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { Math } from 'lib/openzeppelin-contracts/contracts/utils/math/Math.sol';
-import { IERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
-import { SafeERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
+import { Math } from '../../../lib/openzeppelin-contracts/contracts/utils/math/Math.sol';
+import { IERC20 } from '../../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
+import { SafeERC20 } from '../../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 
-import { PoolState } from 'src/pools/structs/UniversalPoolStructs.sol';
-import { EnumerableALMMap } from 'src/libraries/EnumerableALMMap.sol';
+import { PoolState } from '../structs/UniversalPoolStructs.sol';
+import { EnumerableALMMap } from '../../libraries/EnumerableALMMap.sol';
 
 /**
   @title Helper libary to offload logic from Valantis Universal Pool contract, to save bytecode size.
