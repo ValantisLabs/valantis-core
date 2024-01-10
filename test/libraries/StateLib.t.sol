@@ -30,7 +30,8 @@ contract StateLibTest is Base {
     }
 
     struct SetPoolStateFuzzParams {
-        uint8 updateFlags;
+        uint8 flags;
+        address currentOracle;
         uint256 poolManagerFeeBipsOld;
         uint256 poolManagerFeeBipsNew;
     }
@@ -116,5 +117,44 @@ contract StateLibTest is Base {
 
         assertEq(poolState.feeProtocol0, 0);
         assertEq(poolState.feeProtocol1, 0);
+    }
+
+    function test_setPoolState(SetPoolStateFuzzParams memory args) public {
+        args.poolManagerFeeBipsOld = bound(args.poolManagerFeeBipsOld, 0, 5000);
+
+        poolState.universalOracle = args.currentOracle;
+        poolState.poolManager = POOL_MANAGER;
+        poolState.swapFeeModule = makeAddr('SWAP_FEE_MODULE');
+        poolState.poolManagerFeeBips = args.poolManagerFeeBipsOld;
+
+        PoolState memory newState;
+
+        newState.universalOracle = (args.flags & (1 << 1)) != 0 ? makeAddr('NEW_ORACLE') : poolState.universalOracle;
+        newState.poolManager = (args.flags & (1 << 2)) != 0 ? makeAddr('NEW_MANAGER') : POOL_MANAGER;
+        newState.swapFeeModule = (args.flags & (1 << 3)) != 0
+            ? makeAddr('NEW_SWAP_FEE_MODULE')
+            : poolState.swapFeeModule;
+        newState.poolManagerFeeBips = (args.flags & (1 << 4)) != 0
+            ? args.poolManagerFeeBipsNew
+            : args.poolManagerFeeBipsOld;
+
+        if (poolState.universalOracle != ZERO_ADDRESS && newState.universalOracle != poolState.universalOracle) {
+            vm.expectRevert(StateLib.StateLib__setUniversalOracle_universalOracleAlreadySet.selector);
+            StateLib.setPoolState(poolState, newState);
+            return;
+        }
+
+        if (poolState.poolManagerFeeBips != newState.poolManagerFeeBips && newState.poolManagerFeeBips > 5000) {
+            vm.expectRevert(StateLib.StateLib__setPoolManagerFeeBips_invalidPoolManagerFee.selector);
+            StateLib.setPoolState(poolState, newState);
+            return;
+        }
+
+        StateLib.setPoolState(poolState, newState);
+
+        assertEq(poolState.universalOracle, newState.universalOracle);
+        assertEq(poolState.poolManager, newState.poolManager);
+        assertEq(poolState.swapFeeModule, newState.swapFeeModule);
+        assertEq(poolState.poolManagerFeeBips, newState.poolManagerFeeBips);
     }
 }
