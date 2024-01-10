@@ -247,7 +247,12 @@ contract SovereignPoolFuzz is SovereignPoolBase {
             vm.expectRevert('ERC20: insufficient allowance');
         }
 
-        pool.flashLoan(fuzzParams.isTokenZero, FLASH_BORROWER, fuzzParams.amount, abi.encode(fuzzParams.op, address(this)));
+        pool.flashLoan(
+            fuzzParams.isTokenZero,
+            FLASH_BORROWER,
+            fuzzParams.amount,
+            abi.encode(fuzzParams.op, address(this))
+        );
 
         (uint256 reserve0, uint256 reserve1) = pool.getReserves();
 
