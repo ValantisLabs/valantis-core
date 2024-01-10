@@ -155,8 +155,13 @@ contract MockSovereignALM is ISovereignALM {
             );
         }
 
-        uint256 feeAmount = _almLiquidityQuotePoolInput.fee -
-            Math.mulDiv(_almLiquidityQuotePoolInput.fee, ISovereignPool(pool).poolManagerFeeBips(), 1e4);
+        uint256 feeMax = Math.mulDiv(
+            _almLiquidityQuotePoolInput.amountInMinusFee,
+            1e4 + _almLiquidityQuotePoolInput.feeInBips,
+            1e4,
+            Math.Rounding.Up
+        ) - _almLiquidityQuotePoolInput.amountInMinusFee;
+        uint256 feeAmount = feeMax - Math.mulDiv(feeMax, ISovereignPool(pool).poolManagerFeeBips(), 1e4);
         _almLiquidityQuotePoolInput.isZeroToOne ? (fee0 += feeAmount) : (fee1 += feeAmount);
 
         return almLiquidityQuote;
