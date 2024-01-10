@@ -42,6 +42,10 @@ contract StateLibTest is Base {
         _setupBase();
     }
 
+    /************************************************
+     *  Test functions
+     ***********************************************/
+
     function test_claimPoolManagerFees(ClaimPoolManagerFeeFuzzParams memory args) public {
         args.feePoolManager0 = bound(args.feePoolManager0, 0, 1e26);
         args.feePoolManager1 = bound(args.feePoolManager1, 0, 1e26);
