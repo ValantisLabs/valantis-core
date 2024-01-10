@@ -51,11 +51,11 @@ library StateLib {
      *  CUSTOM ERRORS
      ***********************************************/
 
-    error UniversalPool__setPoolState_onlyPoolManager();
-    error UniversalPool__setUniversalOracle_universalOracleAlreadySet();
-    error UniversalPool__setPoolManagerFeeBips_invalidPoolManagerFee();
-    error UniversalPool__setSwapFeeModule_invalidSwapFeeModule();
-    error UniversalPool__claimPoolManagerFees_invalidProtocolFee();
+    error StateLib__claimPoolManagerFees_invalidProtocolFee();
+    error StateLib__setPoolManagerFeeBips_invalidPoolManagerFee();
+    error StateLib__setPoolState_onlyPoolManager();
+    error StateLib__setUniversalOracle_universalOracleAlreadySet();
+    error StateLib__setSwapFeeModule_invalidSwapFeeModule();
 
     /************************************************
      *  EXTERNAL FUNCTIONS
@@ -77,8 +77,8 @@ library StateLib {
         uint256 _feeProtocol1Bips
     ) external returns (uint256 feePoolManager0Claimed, uint256 feePoolManager1Claimed) {
         // Underflow prevention
-        if (_feeProtocol0Bips > 1e4 || _feeProtocol0Bips > 1e4) {
-            revert UniversalPool__claimPoolManagerFees_invalidProtocolFee();
+        if (_feeProtocol0Bips > 1e4 || _feeProtocol1Bips > 1e4) {
+            revert StateLib__claimPoolManagerFees_invalidProtocolFee();
         }
 
         uint256 feePoolManager0 = _state.feePoolManager0;
@@ -143,7 +143,7 @@ library StateLib {
         if (_state.universalOracle != _newState.universalOracle) {
             // Once an oracle is set, it cannot be changed.
             if (_state.universalOracle != address(0)) {
-                revert UniversalPool__setUniversalOracle_universalOracleAlreadySet();
+                revert StateLib__setUniversalOracle_universalOracleAlreadySet();
             } else {
                 _state.universalOracle = _newState.universalOracle;
             }
@@ -168,7 +168,7 @@ library StateLib {
         // Update Pool Manager Fee
         if (_newState.poolManagerFeeBips != _state.poolManagerFeeBips) {
             if (_newState.poolManagerFeeBips > MAX_POOL_MANAGER_FEE_BIPS) {
-                revert UniversalPool__setPoolManagerFeeBips_invalidPoolManagerFee();
+                revert StateLib__setPoolManagerFeeBips_invalidPoolManagerFee();
             } else {
                 _state.poolManagerFeeBips = _newState.poolManagerFeeBips;
 
