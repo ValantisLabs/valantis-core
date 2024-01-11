@@ -20,8 +20,6 @@ contract ALMLibTest is Base {
     struct DepositLiquidityFuzzParams {
         uint256 amount0;
         uint256 amount1;
-        uint256 balanceDelta0;
-        uint256 balanceDelta1;
         uint256 preReserve0;
         uint256 preReserve1;
     }
@@ -46,26 +44,18 @@ contract ALMLibTest is Base {
      ***********************************************/
 
     function test_depositLiquidity(DepositLiquidityFuzzParams memory args) public {
-        args.amount0 = bound(args.amount0, 0, 1e26);
-        args.amount1 = bound(args.amount1, 0, 1e26);
-        args.balanceDelta0 = bound(args.balanceDelta0, 0, 1e26);
-        args.balanceDelta1 = bound(args.balanceDelta1, 0, 1e26);
+        args.amount0 = bound(args.amount0, 1, 1e26);
+        args.amount1 = bound(args.amount1, 1, 1e26);
         args.preReserve0 = bound(args.preReserve0, 0, 1e26);
         args.preReserve1 = bound(args.preReserve1, 0, 1e26);
 
         _updateReserves(args.preReserve0, args.preReserve1);
 
-        if (args.amount0 == 0 && args.amount1 == 0) {
-            vm.expectRevert(ALMLib.ALMLib__depositLiquidity_zeroAmounts.selector);
-            this.depositLiquidity(args.amount0, args.amount1, abi.encode(args.balanceDelta0, args.balanceDelta1));
-            return;
-        }
+        vm.expectRevert(ALMLib.ALMLib__depositLiquidity_zeroAmounts.selector);
+        this.depositLiquidity(0, 0, abi.encode(args.amount0, args.amount1));
 
-        if (args.balanceDelta0 != args.amount0 || args.balanceDelta1 != args.amount1) {
-            vm.expectRevert(ALMLib.ALMLib__depositLiquidity_insufficientTokenAmount.selector);
-            this.depositLiquidity(args.amount0, args.amount1, abi.encode(args.balanceDelta0, args.balanceDelta1));
-            return;
-        }
+        vm.expectRevert(ALMLib.ALMLib__depositLiquidity_insufficientTokenAmount.selector);
+        this.depositLiquidity(args.amount0, args.amount1, abi.encode(args.amount0 + 1, args.amount1 + 1));
 
         vm.expectCall(
             address(this),
@@ -73,14 +63,14 @@ contract ALMLibTest is Base {
                 this.onDepositLiquidityCallback.selector,
                 args.amount0,
                 args.amount1,
-                abi.encode(args.balanceDelta0, args.balanceDelta1)
+                abi.encode(args.amount0, args.amount1)
             )
         );
 
         uint256 preBalance0 = token0.balanceOf(address(this));
         uint256 preBalance1 = token1.balanceOf(address(this));
 
-        this.depositLiquidity(args.amount0, args.amount1, abi.encode(args.balanceDelta0, args.balanceDelta1));
+        this.depositLiquidity(args.amount0, args.amount1, abi.encode(args.amount0, args.amount1));
 
         (, ALMPosition memory almPosition) = _ALMPositions.getALM(address(this));
 
