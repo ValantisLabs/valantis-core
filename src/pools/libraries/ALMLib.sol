@@ -24,9 +24,9 @@ library ALMLib {
      *  CUSTOM ERRORS
      ***********************************************/
 
-    error UniversalPool__depositLiquidity_insufficientTokenAmount();
-    error UniversalPool__depositLiquidity_zeroAmounts();
-    error UniversalPool__withdrawLiquidity_insufficientReserves();
+    error ALMLib__depositLiquidity_insufficientTokenAmount();
+    error ALMLib__depositLiquidity_zeroAmounts();
+    error ALMLib__withdrawLiquidity_insufficientReserves();
 
     /************************************************
      *  FUNCTIONS
@@ -48,7 +48,7 @@ library ALMLib {
         bytes memory _depositData
     ) external {
         if (_amount0 == 0 && _amount1 == 0) {
-            revert UniversalPool__depositLiquidity_zeroAmounts();
+            revert ALMLib__depositLiquidity_zeroAmounts();
         }
 
         (, ALMPosition storage almPosition) = _ALMPositions.getALM(msg.sender);
@@ -65,7 +65,7 @@ library ALMLib {
         uint256 amount1Deposited = _token1.balanceOf(address(this)) - preBalanceToken1;
 
         if (amount0Deposited != _amount0 || amount1Deposited != _amount1) {
-            revert UniversalPool__depositLiquidity_insufficientTokenAmount();
+            revert ALMLib__depositLiquidity_insufficientTokenAmount();
         }
 
         emit DepositLiquidity(msg.sender, _amount0, _amount1);
@@ -92,7 +92,7 @@ library ALMLib {
         (, ALMPosition memory almPositionCache) = _ALMPositions.getALM(msg.sender);
 
         if (_amount0 > almPositionCache.reserve0 || _amount1 > almPositionCache.reserve1) {
-            revert UniversalPool__withdrawLiquidity_insufficientReserves();
+            revert ALMLib__withdrawLiquidity_insufficientReserves();
         }
 
         (, ALMPosition storage almPosition) = _ALMPositions.getALM(msg.sender);
