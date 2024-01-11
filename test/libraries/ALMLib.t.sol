@@ -13,11 +13,22 @@ import { Base } from 'test/base/Base.sol';
 contract ALMLibTest is Base {
     using EnumerableALMMap for EnumerableALMMap.ALMSet;
 
+    /************************************************
+     *  STRUCTS
+     ***********************************************/
+
     struct DepositLiquidityFuzzParams {
         uint256 amount0;
         uint256 amount1;
         uint256 balanceDelta0;
         uint256 balanceDelta1;
+        uint256 preReserve0;
+        uint256 preReserve1;
+    }
+
+    struct WithdrawLiquidityFuzzParams {
+        uint256 amount0;
+        uint256 amount1;
         uint256 preReserve0;
         uint256 preReserve1;
     }
@@ -29,6 +40,10 @@ contract ALMLibTest is Base {
 
         _ALMPositions.add(ALMPosition(Slot0(false, false, false, 0, address(this)), 0, 0, 0, 0));
     }
+
+    /************************************************
+     *  Test functions
+     ***********************************************/
 
     function test_depositLiquidity(DepositLiquidityFuzzParams memory args) public {
         args.amount0 = bound(args.amount0, 0, 1e26);
@@ -62,15 +77,52 @@ contract ALMLibTest is Base {
             )
         );
 
+        uint256 preBalance0 = token0.balanceOf(address(this));
+        uint256 preBalance1 = token1.balanceOf(address(this));
+
         this.depositLiquidity(args.amount0, args.amount1, abi.encode(args.balanceDelta0, args.balanceDelta1));
 
         (, ALMPosition memory almPosition) = _ALMPositions.getALM(address(this));
 
         assertEq(almPosition.reserve0, args.preReserve0 + args.amount0);
         assertEq(almPosition.reserve1, args.preReserve1 + args.amount1);
+
+        assertEq(preBalance0, token0.balanceOf(address(this)) - args.amount0);
+        assertEq(preBalance1, token1.balanceOf(address(this)) - args.amount1);
     }
 
-    function test_withdrawLiquidity() public {}
+    function test_withdrawLiquidity(WithdrawLiquidityFuzzParams memory args) public {
+        args.amount0 = bound(args.amount0, 0, 1e26);
+        args.amount1 = bound(args.amount1, 0, 1e26);
+        args.preReserve0 = bound(args.preReserve0, 0, 1e26);
+        args.preReserve1 = bound(args.preReserve1, 0, 1e26);
+
+        address USER = _randomUser();
+
+        _updateReserves(args.preReserve0, args.preReserve1);
+
+        if (args.amount0 > args.preReserve0 || args.amount1 > args.preReserve1) {
+            vm.expectRevert(ALMLib.ALMLib__withdrawLiquidity_insufficientReserves.selector);
+            this.withdrawLiquidity(args.amount0, args.amount1, USER);
+            return;
+        }
+
+        if (args.amount0 > 0)
+            vm.expectCall(address(token0), abi.encodeWithSelector(IERC20.transfer.selector, USER, args.amount0));
+        if (args.amount1 > 0)
+            vm.expectCall(address(token1), abi.encodeWithSelector(IERC20.transfer.selector, USER, args.amount1));
+
+        this.withdrawLiquidity(args.amount0, args.amount1, USER);
+
+        (, ALMPosition memory almPosition) = _ALMPositions.getALM(address(this));
+
+        assertEq(almPosition.reserve0, args.preReserve0 - args.amount0);
+        assertEq(almPosition.reserve1, args.preReserve1 - args.amount1);
+    }
+
+    /************************************************
+     *  External functions
+     ***********************************************/
 
     function onDepositLiquidityCallback(uint256, uint256, bytes memory depositData) external {
         assertEq(msg.sender, address(this));
@@ -94,10 +146,20 @@ contract ALMLibTest is Base {
         ALMLib.depositLiquidity(_ALMPositions, token0, token1, amount0, amount1, depositData);
     }
 
+    function withdrawLiquidity(uint256 amount0, uint256 amount1, address recipient) external {
+        ALMLib.withdrawLiquidity(_ALMPositions, token0, token1, amount0, amount1, recipient);
+    }
+
+    /************************************************
+     *  Internal functions
+     ***********************************************/
     function _updateReserves(uint256 reserve0, uint256 reserve1) internal {
         (, ALMPosition storage almPosition) = _ALMPositions.getALM(address(this));
 
         almPosition.reserve0 = reserve0;
         almPosition.reserve1 = reserve1;
+
+        _setupBalanceForUser(address(this), address(token0), reserve0);
+        _setupBalanceForUser(address(this), address(token1), reserve1);
     }
 }
