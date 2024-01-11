@@ -143,6 +143,7 @@ contract ALMLibTest is Base {
     /************************************************
      *  Internal functions
      ***********************************************/
+
     function _updateReserves(uint256 reserve0, uint256 reserve1) internal {
         (, ALMPosition storage almPosition) = _ALMPositions.getALM(address(this));
 
