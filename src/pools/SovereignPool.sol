@@ -318,7 +318,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
             ? args.defaultSwapFeeBips
             : _MAX_SWAP_FEE_BIPS;
 
-        // This allows `poolManager` to set Swap Fee Module for the first time
+        // Initialize timestamp at which Swap Fee Module can be set
         swapFeeModuleUpdateTimestamp = block.timestamp;
     }
 
