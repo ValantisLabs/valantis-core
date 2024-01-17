@@ -47,6 +47,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         assertEq(pool.sovereignVault(), address(pool));
 
         assertEq(pool.isLocked(), false);
+        assertEq(pool.swapFeeModuleUpdateTimestamp(), block.timestamp);
     }
 
     function test_customConstructorArgs() public {
@@ -90,6 +91,8 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         args.defaultSwapFeeBips = 5e10;
         pool = this.deploySovereignPool(protocolFactory, args);
         assertEq(pool.defaultSwapFeeBips(), 10_000);
+
+        assertEq(pool.swapFeeModuleUpdateTimestamp(), block.timestamp);
     }
 
     /************************************************
@@ -205,9 +208,21 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         vm.startPrank(POOL_MANAGER);
 
+        // Test Swap Fee Module is set correctly
         pool.setSwapFeeModule(swapFeeModule);
 
         assertEq(pool.swapFeeModule(), swapFeeModule);
+        assertEq(pool.swapFeeModuleUpdateTimestamp(), block.timestamp + 3 days);
+
+        // Check error on Swap Fee Module being set too frequently (more than once every 3 days)
+        vm.expectRevert(SovereignPool.SovereignPool__setSwapFeeModule_timelock.selector);
+        pool.setSwapFeeModule(swapFeeModule);
+
+        // Test Swap Fee Module update after timelock
+        vm.warp(block.timestamp + 3 days);
+        pool.setSwapFeeModule(ZERO_ADDRESS);
+        assertEq(pool.swapFeeModule(), ZERO_ADDRESS);
+        assertEq(pool.swapFeeModuleUpdateTimestamp(), block.timestamp + 3 days);
     }
 
     function test_setALM() public {

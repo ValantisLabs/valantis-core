@@ -41,6 +41,8 @@ interface ISovereignPool is IValantisPool {
 
     function defaultSwapFeeBips() external view returns (uint256);
 
+    function swapFeeModuleUpdateTimestamp() external view returns (uint256);
+
     function alm() external view returns (address);
 
     function getPoolManagerFees() external view returns (uint256 poolManagerFee0, uint256 poolManagerFee1);

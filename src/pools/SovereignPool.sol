@@ -76,6 +76,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
     error SovereignPool__swap_invalidRecipient();
     error SovereignPool__swap_insufficientAmountIn();
     error SovereignPool__swap_invalidSwapTokenOut();
+    error SovereignPool__setSwapFeeModule_timelock();
     error SovereignPool__withdrawLiquidity_insufficientReserve0();
     error SovereignPool__withdrawLiquidity_insufficientReserve1();
     error SovereignPool__withdrawLiquidity_invalidRecipient();
@@ -224,6 +225,13 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
     uint256 public feeProtocol1;
 
     /**
+        @notice Block timestamp at or after which Swap Fee Module can be updated by `poolManager`.
+        @dev This is meant to function as a time-lock to prevent `poolManager` from front-run user swaps,
+             which could rapidly increase swap fees at arbitrary block times. 
+     */
+    uint256 public swapFeeModuleUpdateTimestamp;
+
+    /**
         @notice token0 and token1 LP reserves.
      */
     uint256 private _reserve0;
@@ -309,6 +317,9 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
         defaultSwapFeeBips = args.defaultSwapFeeBips <= _MAX_SWAP_FEE_BIPS
             ? args.defaultSwapFeeBips
             : _MAX_SWAP_FEE_BIPS;
+
+        // This allows `poolManager` to set Swap Fee Module for the first time
+        swapFeeModuleUpdateTimestamp = block.timestamp;
     }
 
     /************************************************
@@ -499,10 +510,19 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
         @notice Set Swap Fee Module for this pool.
         @dev Only callable by `poolManager`.
         @dev If set as address(0), a constant default swap fee will be applied.
+        @dev It contains a 3 days timelock, to prevent `poolManager` from front-running
+             swaps by rapidly increasing swap fees too frequently.
         @param swapFeeModule_ Address of Swap Fee Module to whitelist.
      */
     function setSwapFeeModule(address swapFeeModule_) external override onlyPoolManager nonReentrant {
+        // Swap Fee Module cannot be updated too frequently (at most once every 3 days)
+        if (block.timestamp < swapFeeModuleUpdateTimestamp) {
+            revert SovereignPool__setSwapFeeModule_timelock();
+        }
+
         _swapFeeModule = ISwapFeeModule(swapFeeModule_);
+        // Update timestamp at which the next Swap Fee Module update can occur
+        swapFeeModuleUpdateTimestamp = block.timestamp + 3 days;
 
         emit SwapFeeModuleSet(swapFeeModule_);
     }
