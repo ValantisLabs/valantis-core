@@ -36,9 +36,9 @@ library GM {
      *  CUSTOM ERRORS
      ***********************************************/
 
-    error UniversalPool__verifyLiquidityQuote_quoteGTExpected(address);
-    error UniversalPool__verifyLiquidityQuote_quoteGTReserves(address);
-    error UniversalPool__verifyLiquidityQuote_invalidNLPT(address);
+    error GM__verifyLiquidityQuote_quoteGTExpected(address);
+    error GM__verifyLiquidityQuote_quoteGTReserves(address);
+    error GM__verifyLiquidityQuote_invalidNLPT(address);
 
     /************************************************
      *  INTERNAL FUNCTIONS
@@ -348,7 +348,7 @@ library GM {
     ) private pure {
         // ALMs cannot quote amounts greater than needed by the swap
         if (almLiquidityQuote.tokenOutAmount > almLiquidityQuotePoolInputs.amountOutExpected) {
-            revert UniversalPool__verifyLiquidityQuote_quoteGTExpected(internalSwapALMState.almSlot0.almAddress);
+            revert GM__verifyLiquidityQuote_quoteGTExpected(internalSwapALMState.almSlot0.almAddress);
         }
 
         // Checks only for base ALMs
@@ -360,21 +360,21 @@ library GM {
                     (almLiquidityQuote.nextLiquidPriceTick > almLiquidityQuotePoolInputs.currentSpotPriceTick) ||
                     almLiquidityQuote.nextLiquidPriceTick < almLiquidityQuotePoolInputs.limitPriceTick
                 ) {
-                    revert UniversalPool__verifyLiquidityQuote_invalidNLPT(internalSwapALMState.almSlot0.almAddress);
+                    revert GM__verifyLiquidityQuote_invalidNLPT(internalSwapALMState.almSlot0.almAddress);
                 }
             } else {
                 if (
                     (almLiquidityQuote.nextLiquidPriceTick < almLiquidityQuotePoolInputs.currentSpotPriceTick) ||
                     almLiquidityQuote.nextLiquidPriceTick > almLiquidityQuotePoolInputs.limitPriceTick
                 ) {
-                    revert UniversalPool__verifyLiquidityQuote_invalidNLPT(internalSwapALMState.almSlot0.almAddress);
+                    revert GM__verifyLiquidityQuote_invalidNLPT(internalSwapALMState.almSlot0.almAddress);
                 }
             }
         }
 
         // tokenOut amount cannot be greater than its reserves
         if (almLiquidityQuote.tokenOutAmount > internalSwapALMState.almReserves.tokenOutReserves) {
-            revert UniversalPool__verifyLiquidityQuote_quoteGTReserves(internalSwapALMState.almSlot0.almAddress);
+            revert GM__verifyLiquidityQuote_quoteGTReserves(internalSwapALMState.almSlot0.almAddress);
         }
     }
 
