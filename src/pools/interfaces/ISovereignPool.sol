@@ -9,7 +9,6 @@ interface ISovereignPool is IValantisPool {
     event SwapFeeModuleSet(address swapFeeModule);
     event ALMSet(address alm);
     event GaugeSet(address gauge);
-    event VerifierModuleSet(address verifierModule);
     event PoolManagerSet(address poolManager);
     event PoolManagerFeeSet(uint256 poolManagerFeeBips);
     event SovereignOracleSet(address sovereignOracle);

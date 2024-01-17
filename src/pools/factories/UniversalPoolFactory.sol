@@ -19,16 +19,12 @@ contract UniversalPoolFactory is IPoolDeployer {
      ***********************************************/
 
     function deploy(bytes32, bytes calldata _constructorArgs) external override returns (address deployment) {
-        // AUDIT
-        // NOTE: We don't need to check if the sender of deploy is protocolFactory
-        // As there is nothing harmful that a person can do by deploying a new pool
-
         (address token0, address token1, address protocolFactory, address poolManager, uint256 defaultSwapFeeBips) = abi
             .decode(_constructorArgs, (address, address, address, address, uint256));
 
         // Salt to trigger a create2 deployment,
         // as create is prone to re-org attacks
-        bytes32 salt = keccak256(abi.encode(nonce));
+        bytes32 salt = keccak256(abi.encode(nonce, block.chainid));
         deployment = address(
             new UniversalPool{ salt: salt }(token0, token1, protocolFactory, poolManager, defaultSwapFeeBips)
         );

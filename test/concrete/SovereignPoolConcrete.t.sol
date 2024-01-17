@@ -89,7 +89,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         // Increase fee bips to be more than MAX_FEE_BIPS.
         args.defaultSwapFeeBips = 5e10;
         pool = this.deploySovereignPool(protocolFactory, args);
-        assertEq(pool.defaultSwapFeeBips(), pool.MAX_SWAP_FEE_BIPS());
+        assertEq(pool.defaultSwapFeeBips(), 10_000);
     }
 
     /************************************************
@@ -139,7 +139,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         pool.setPoolManagerFeeBips(poolManagerFeeBips);
 
-        poolManagerFeeBips = pool.MAX_POOL_MANAGER_FEE_BIPS() - 1;
+        poolManagerFeeBips = 5_000 - 1;
 
         pool.setPoolManagerFeeBips(poolManagerFeeBips);
 
@@ -244,7 +244,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         pool.claimPoolManagerFees(1e3, 1e3);
 
         // Check fee bips are less than or equal to 1e4.
-        vm.expectRevert(SovereignPool.SovereignPool__claimPoolManagerFees_invalidProtocolFee.selector);
+        vm.expectRevert(SovereignPool.SovereignPool___claimPoolManagerFees_invalidProtocolFee.selector);
 
         vm.prank(POOL_MANAGER);
 
@@ -284,7 +284,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         _setPoolManagerFees(10e18, 10e18);
 
-        vm.expectRevert(SovereignPool.SovereignPool__claimPoolManagerFees_invalidFeeReceived.selector);
+        vm.expectRevert(SovereignPool.SovereignPool___claimPoolManagerFees_invalidFeeReceived.selector);
         vm.prank(POOL_MANAGER);
         pool.claimPoolManagerFees(0, 0);
 
@@ -589,6 +589,14 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         SovereignPoolSwapParams memory swapParams;
 
+        // Test error when block timestamp is past the deadline
+        swapParams.deadline = block.timestamp - 1;
+
+        vm.expectRevert(SovereignPool.SovereignPool__swap_expired.selector);
+        pool.swap(swapParams);
+
+        swapParams.deadline = block.timestamp;
+
         // Test error when amountIn is zero.
         vm.expectRevert(SovereignPool.SovereignPool__swap_insufficientAmountIn.selector);
         pool.swap(swapParams);
@@ -799,6 +807,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         SovereignPoolSwapParams memory swapParams;
         swapParams.amountIn = 10e18;
+        swapParams.deadline = block.timestamp;
         swapParams.recipient = RECIPIENT;
 
         // Prepare new pool, but with rebase tokens.
@@ -909,6 +918,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         SovereignPoolSwapParams memory swapParams;
 
         swapParams.amountIn = 10e18;
+        swapParams.deadline = block.timestamp;
         swapParams.recipient = RECIPIENT;
         swapParams.swapTokenOut = address(token0);
 
@@ -967,6 +977,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         SovereignPoolSwapParams memory swapParams;
 
         swapParams.amountIn = 10e18;
+        swapParams.deadline = block.timestamp;
         swapParams.swapTokenOut = address(token0);
         swapParams.recipient = makeAddr('RECIPIENT');
 

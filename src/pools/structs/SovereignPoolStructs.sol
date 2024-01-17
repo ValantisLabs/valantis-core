@@ -38,6 +38,7 @@ struct SovereignPoolSwapParams {
     bool isZeroToOne;
     uint256 amountIn;
     uint256 amountOutMin;
+    uint256 deadline;
     address recipient;
     address swapTokenOut;
     SovereignPoolSwapContextData swapContext;
