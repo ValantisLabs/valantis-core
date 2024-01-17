@@ -149,6 +149,7 @@ contract SovereignPoolInvariantTest is InvariantBase, SovereignPoolBase {
                 isZeroToOne,
                 amountIn,
                 0,
+                block.timestamp,
                 USER,
                 swapTokenOut,
                 SovereignPoolSwapContextData(new bytes(0), new bytes(0), new bytes(0), new bytes(0))

@@ -15,12 +15,7 @@ import { ALMLiquidityQuoteInput, ALMLiquidityQuote } from '../ALM/structs/Sovere
 import { ISovereignVaultMinimal } from './interfaces/ISovereignVaultMinimal.sol';
 import { ISovereignALM } from '../ALM/interfaces/ISovereignALM.sol';
 import { ISovereignOracle } from '../oracles/interfaces/ISovereignOracle.sol';
-import {
-    SovereignPoolConstructorArgs,
-    SovereignPoolSwapContextData,
-    SwapCache,
-    SovereignPoolSwapParams
-} from './structs/SovereignPoolStructs.sol';
+import { SovereignPoolConstructorArgs, SwapCache, SovereignPoolSwapParams } from './structs/SovereignPoolStructs.sol';
 import { IFlashBorrower } from './interfaces/IFlashBorrower.sol';
 
 /**
@@ -64,8 +59,6 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
     error SovereignPool__onlyProtocolFactory();
     error SovereignPool__sameTokenNotAllowed();
     error SovereignPool__ZeroAddress();
-    error SovereignPool__claimPoolManagerFees_invalidFeeReceived();
-    error SovereignPool__claimPoolManagerFees_invalidProtocolFee();
     error SovereignPool__depositLiquidity_depositDisabled();
     error SovereignPool__depositLiquidity_excessiveToken0ErrorOnTransfer();
     error SovereignPool__depositLiquidity_excessiveToken1ErrorOnTransfer();
@@ -77,15 +70,18 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
     error SovereignPool__setPoolManagerFeeBips_excessivePoolManagerFee();
     error SovereignPool__setSovereignOracle__sovereignOracleAlreadySet();
     error SovereignPool__swap_excessiveSwapFee();
+    error SovereignPool__swap_expired();
     error SovereignPool__swap_invalidLiquidityQuote();
     error SovereignPool__swap_invalidPoolTokenOut();
     error SovereignPool__swap_invalidRecipient();
     error SovereignPool__swap_insufficientAmountIn();
-    error SovereignPool__swap_insufficientRecipientAmountOut();
     error SovereignPool__swap_invalidSwapTokenOut();
+    error SovereignPool__setSwapFeeModule_timelock();
     error SovereignPool__withdrawLiquidity_insufficientReserve0();
     error SovereignPool__withdrawLiquidity_insufficientReserve1();
     error SovereignPool__withdrawLiquidity_invalidRecipient();
+    error SovereignPool___claimPoolManagerFees_invalidFeeReceived();
+    error SovereignPool___claimPoolManagerFees_invalidProtocolFee();
     error SovereignPool___handleTokenInOnSwap_excessiveTokenInErrorOnTransfer();
     error SovereignPool___handleTokenInOnSwap_invalidTokenInAmount();
     error SovereignPool___verifyPermission_onlyPermissionedAccess(address sender, uint8 accessType);
@@ -98,12 +94,12 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
         @notice Maximum swap fee is 50% of input amount. 
         @dev See docs for a more detailed explanation about how swap fees are applied.
      */
-    uint256 public constant MAX_SWAP_FEE_BIPS = 10_000;
+    uint256 private constant _MAX_SWAP_FEE_BIPS = 10_000;
 
     /**
         @notice `poolManager` can collect up to 50% of swap fees.
      */
-    uint256 public constant MAX_POOL_MANAGER_FEE_BIPS = 5_000;
+    uint256 private constant _MAX_POOL_MANAGER_FEE_BIPS = 5_000;
 
     /**
         @notice Maximum allowed error tolerance on rebase token transfers.
@@ -229,6 +225,13 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
     uint256 public feeProtocol1;
 
     /**
+        @notice Block timestamp at or after which Swap Fee Module can be updated by `poolManager`.
+        @dev This is meant to function as a time-lock to prevent `poolManager` from front-run user swaps,
+             which could rapidly increase swap fees at arbitrary block times. 
+     */
+    uint256 public swapFeeModuleUpdateTimestamp;
+
+    /**
         @notice token0 and token1 LP reserves.
      */
     uint256 private _reserve0;
@@ -311,7 +314,12 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
         token0AbsErrorTolerance = args.token0AbsErrorTolerance;
         token1AbsErrorTolerance = args.token1AbsErrorTolerance;
 
-        defaultSwapFeeBips = args.defaultSwapFeeBips <= MAX_SWAP_FEE_BIPS ? args.defaultSwapFeeBips : MAX_SWAP_FEE_BIPS;
+        defaultSwapFeeBips = args.defaultSwapFeeBips <= _MAX_SWAP_FEE_BIPS
+            ? args.defaultSwapFeeBips
+            : _MAX_SWAP_FEE_BIPS;
+
+        // Initialize timestamp at which Swap Fee Module can be set
+        swapFeeModuleUpdateTimestamp = block.timestamp;
     }
 
     /************************************************
@@ -380,7 +388,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
         @notice Returns True if this pool contains at least one rebase token. 
      */
     function isRebaseTokenPool() external view override returns (bool) {
-        return _isRebaseTokenPool();
+        return isToken0Rebase || isToken1Rebase;
     }
 
     /**
@@ -442,13 +450,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
         if (_manager == address(0)) {
             poolManagerFeeBips = 0;
             // It will be assumed pool is not going to contribute anything to protocol fees.
-            if (sovereignVault == address(this)) {
-                if (feePoolManager0 > 0) _token0.safeTransfer(msg.sender, feePoolManager0);
-                if (feePoolManager1 > 0) _token1.safeTransfer(msg.sender, feePoolManager1);
-
-                feePoolManager0 = 0;
-                feePoolManager1 = 0;
-            }
+            _claimPoolManagerFees(0, 0, msg.sender);
         }
 
         emit PoolManagerSet(_manager);
@@ -461,7 +463,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
         @param _poolManagerFeeBips fee to set in BIPS.
      */
     function setPoolManagerFeeBips(uint256 _poolManagerFeeBips) external override onlyPoolManager nonReentrant {
-        if (_poolManagerFeeBips > MAX_POOL_MANAGER_FEE_BIPS) {
+        if (_poolManagerFeeBips > _MAX_POOL_MANAGER_FEE_BIPS) {
             revert SovereignPool__setPoolManagerFeeBips_excessivePoolManagerFee();
         }
 
@@ -508,10 +510,19 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
         @notice Set Swap Fee Module for this pool.
         @dev Only callable by `poolManager`.
         @dev If set as address(0), a constant default swap fee will be applied.
+        @dev It contains a 3 days timelock, to prevent `poolManager` from front-running
+             swaps by rapidly increasing swap fees too frequently.
         @param swapFeeModule_ Address of Swap Fee Module to whitelist.
      */
     function setSwapFeeModule(address swapFeeModule_) external override onlyPoolManager nonReentrant {
+        // Swap Fee Module cannot be updated too frequently (at most once every 3 days)
+        if (block.timestamp < swapFeeModuleUpdateTimestamp) {
+            revert SovereignPool__setSwapFeeModule_timelock();
+        }
+
         _swapFeeModule = ISwapFeeModule(swapFeeModule_);
+        // Update timestamp at which the next Swap Fee Module update can occur
+        swapFeeModuleUpdateTimestamp = block.timestamp + 3 days;
 
         emit SwapFeeModuleSet(swapFeeModule_);
     }
@@ -588,54 +599,11 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
         onlyPoolManager
         returns (uint256 feePoolManager0Received, uint256 feePoolManager1Received)
     {
-        if (_feeProtocol0Bips > 1e4 || _feeProtocol1Bips > 1e4) {
-            revert SovereignPool__claimPoolManagerFees_invalidProtocolFee();
-        }
-
-        (feePoolManager0Received, feePoolManager1Received) = getPoolManagerFees();
-
-        // Attempt to claim pool manager fees from `sovereignVault`
-        // This is necessary since in this case reserves are not kept in this pool
-        if (sovereignVault != address(this)) {
-            uint256 token0PreBalance = _token0.balanceOf(address(this));
-            uint256 token1PreBalance = _token1.balanceOf(address(this));
-
-            ISovereignVaultMinimal(sovereignVault).claimPoolManagerFees(feePoolManager0, feePoolManager1);
-
-            uint256 fee0ReceivedCache = _token0.balanceOf(address(this)) - token0PreBalance;
-            uint256 fee1ReceivedCache = _token1.balanceOf(address(this)) - token1PreBalance;
-
-            // Cannot transfer in excess, otherwise it would be possible to manipulate this pool's
-            // fair share of earned swap fees
-            if (fee0ReceivedCache > feePoolManager0Received || fee1ReceivedCache > feePoolManager1Received) {
-                revert SovereignPool__claimPoolManagerFees_invalidFeeReceived();
-            }
-
-            feePoolManager0Received = fee0ReceivedCache;
-            feePoolManager1Received = fee1ReceivedCache;
-        }
-
-        uint256 protocolFee0 = Math.mulDiv(_feeProtocol0Bips, feePoolManager0Received, 1e4);
-        uint256 protocolFee1 = Math.mulDiv(_feeProtocol1Bips, feePoolManager1Received, 1e4);
-
-        feeProtocol0 += protocolFee0;
-        feeProtocol1 += protocolFee1;
-
-        feePoolManager0 = 0;
-        feePoolManager1 = 0;
-
-        feePoolManager0Received -= protocolFee0;
-        feePoolManager1Received -= protocolFee1;
-
-        if (feePoolManager0Received > 0) {
-            _token0.safeTransfer(msg.sender, feePoolManager0Received);
-        }
-
-        if (feePoolManager1Received > 0) {
-            _token1.safeTransfer(msg.sender, feePoolManager1Received);
-        }
-
-        emit PoolManagerFeesClaimed(feePoolManager0Received, feePoolManager1Received);
+        (feePoolManager0Received, feePoolManager1Received) = _claimPoolManagerFees(
+            _feeProtocol0Bips,
+            _feeProtocol1Bips,
+            msg.sender
+        );
     }
 
     /**
@@ -666,6 +634,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
                * isZeroToOne Direction of the swap.
                * amountIn Input amount to swap.
                * amountOutMin Minimum output token amount required.
+               * deadline Block timestamp after which the swap is no longer valid.
                * recipient Recipient address for output token.
                * swapTokenOut Address of output token.
                  If `sovereignVault != address(this)` it can be other tokens apart from token0 or token1.
@@ -676,7 +645,11 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
     function swap(
         SovereignPoolSwapParams calldata _swapParams
     ) external override nonReentrant returns (uint256 amountInUsed, uint256 amountOut) {
-        // Cannot swap below minimum input token amount
+        if (block.timestamp > _swapParams.deadline) {
+            revert SovereignPool__swap_expired();
+        }
+
+        // Cannot swap zero input token amount
         if (_swapParams.amountIn == 0) {
             revert SovereignPool__swap_insufficientAmountIn();
         }
@@ -721,7 +694,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
             )
             : SwapFeeModuleData({ feeInBips: defaultSwapFeeBips, internalContext: new bytes(0) });
 
-        if (swapFeeModuleData.feeInBips > MAX_SWAP_FEE_BIPS) {
+        if (swapFeeModuleData.feeInBips > _MAX_SWAP_FEE_BIPS) {
             revert SovereignPool__swap_excessiveSwapFee();
         }
 
@@ -729,7 +702,11 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
         // this quantity is calculated in such a way that `msg.sender`
         // will be charged `feeInBips` of whatever the amount of tokenIn filled
         // ends up being (see docs for more details)
-        swapCache.amountInWithoutFee = Math.mulDiv(_swapParams.amountIn, 1e4, 1e4 + swapFeeModuleData.feeInBips);
+        swapCache.amountInWithoutFee = Math.mulDiv(
+            _swapParams.amountIn,
+            _MAX_SWAP_FEE_BIPS,
+            _MAX_SWAP_FEE_BIPS + swapFeeModuleData.feeInBips
+        );
 
         ALMLiquidityQuote memory liquidityQuote = ISovereignALM(alm).getLiquidityQuote(
             ALMLiquidityQuoteInput({
@@ -767,7 +744,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
         // now that we know the tokenIn amount filled
         uint256 effectiveFee;
         if (liquidityQuote.amountInFilled != swapCache.amountInWithoutFee) {
-            effectiveFee = Math.mulDiv(liquidityQuote.amountInFilled, swapFeeModuleData.feeInBips, 1e4);
+            effectiveFee = Math.mulDiv(liquidityQuote.amountInFilled, swapFeeModuleData.feeInBips, _MAX_SWAP_FEE_BIPS);
             amountInUsed = liquidityQuote.amountInFilled + effectiveFee;
         } else {
             // Using above formula in case amountInWithoutFee == amountInFilled introduces rounding errors
@@ -839,12 +816,13 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
         // since reserves are not meant to be stored in the pool
         if (sovereignVault != address(this)) revert SovereignPool__depositLiquidity_depositDisabled();
 
-        uint256 token0PreBalance = _token0.balanceOf(address(this));
-        uint256 token1PreBalance = _token1.balanceOf(address(this));
-
-        if (_amount0 == 0 && _amount1 == 0) {
+        // At least one token amount must be positive
+        if (_amount0 | _amount1 == 0) {
             revert SovereignPool__depositLiquidity_zeroTotalDepositAmount();
         }
+
+        uint256 token0PreBalance = _token0.balanceOf(address(this));
+        uint256 token1PreBalance = _token1.balanceOf(address(this));
 
         if (address(_verifierModule) != address(0)) {
             _verifyPermission(_sender, _verificationContext, uint8(AccessType.DEPOSIT));
@@ -941,6 +919,64 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
      *  PRIVATE FUNCTIONS
      ***********************************************/
 
+    function _claimPoolManagerFees(
+        uint256 _feeProtocol0Bips,
+        uint256 _feeProtocol1Bips,
+        address _recipient
+    ) private returns (uint256 feePoolManager0Received, uint256 feePoolManager1Received) {
+        if (_feeProtocol0Bips > _MAX_SWAP_FEE_BIPS || _feeProtocol1Bips > _MAX_SWAP_FEE_BIPS) {
+            revert SovereignPool___claimPoolManagerFees_invalidProtocolFee();
+        }
+
+        (feePoolManager0Received, feePoolManager1Received) = getPoolManagerFees();
+
+        // Attempt to claim pool manager fees from `sovereignVault`
+        // This is necessary since in this case reserves are not kept in this pool
+        if (sovereignVault != address(this)) {
+            uint256 token0PreBalance = _token0.balanceOf(address(this));
+            uint256 token1PreBalance = _token1.balanceOf(address(this));
+
+            ISovereignVaultMinimal(sovereignVault).claimPoolManagerFees(
+                feePoolManager0Received,
+                feePoolManager1Received
+            );
+
+            uint256 fee0ReceivedCache = _token0.balanceOf(address(this)) - token0PreBalance;
+            uint256 fee1ReceivedCache = _token1.balanceOf(address(this)) - token1PreBalance;
+
+            // Cannot transfer in excess, otherwise it would be possible to manipulate this pool's
+            // fair share of earned swap fees
+            if (fee0ReceivedCache > feePoolManager0Received || fee1ReceivedCache > feePoolManager1Received) {
+                revert SovereignPool___claimPoolManagerFees_invalidFeeReceived();
+            }
+
+            feePoolManager0Received = fee0ReceivedCache;
+            feePoolManager1Received = fee1ReceivedCache;
+        }
+
+        uint256 protocolFee0 = Math.mulDiv(_feeProtocol0Bips, feePoolManager0Received, _MAX_SWAP_FEE_BIPS);
+        uint256 protocolFee1 = Math.mulDiv(_feeProtocol1Bips, feePoolManager1Received, _MAX_SWAP_FEE_BIPS);
+
+        feeProtocol0 += protocolFee0;
+        feeProtocol1 += protocolFee1;
+
+        feePoolManager0 = 0;
+        feePoolManager1 = 0;
+
+        feePoolManager0Received -= protocolFee0;
+        feePoolManager1Received -= protocolFee1;
+
+        if (feePoolManager0Received > 0) {
+            _token0.safeTransfer(_recipient, feePoolManager0Received);
+        }
+
+        if (feePoolManager1Received > 0) {
+            _token1.safeTransfer(_recipient, feePoolManager1Received);
+        }
+
+        emit PoolManagerFeesClaimed(feePoolManager0Received, feePoolManager1Received);
+    }
+
     function _verifyPermission(
         address sender,
         bytes calldata verificationContext,
@@ -993,7 +1029,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
 
         if (isTokenInRebase && sovereignVault == address(this) && poolManager != address(0)) {
             // We transfer manager fee to `poolManager`
-            uint256 poolManagerFee = Math.mulDiv(effectiveFee, poolManagerFeeBips, 1e4);
+            uint256 poolManagerFee = Math.mulDiv(effectiveFee, poolManagerFeeBips, _MAX_SWAP_FEE_BIPS);
             if (poolManagerFee > 0) {
                 token.safeTransfer(poolManager, poolManagerFee);
             }
@@ -1019,7 +1055,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
     ) private {
         if (isZeroToOne) {
             if (!isToken0Rebase) {
-                uint256 poolManagerFee = Math.mulDiv(effectiveFee, poolManagerFeeBips, 1e4);
+                uint256 poolManagerFee = Math.mulDiv(effectiveFee, poolManagerFeeBips, _MAX_SWAP_FEE_BIPS);
 
                 if (sovereignVault == address(this)) _reserve0 += (amountInUsed - poolManagerFee);
                 if (poolManagerFee > 0) feePoolManager0 += poolManagerFee;
@@ -1034,16 +1070,12 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
             }
 
             if (!isToken1Rebase) {
-                uint256 poolManagerFee = Math.mulDiv(effectiveFee, poolManagerFeeBips, 1e4);
+                uint256 poolManagerFee = Math.mulDiv(effectiveFee, poolManagerFeeBips, _MAX_SWAP_FEE_BIPS);
 
                 if (sovereignVault == address(this)) _reserve1 += (amountInUsed - poolManagerFee);
                 if (poolManagerFee > 0) feePoolManager1 += poolManagerFee;
             }
         }
-    }
-
-    function _isRebaseTokenPool() private view returns (bool) {
-        return isToken0Rebase || isToken1Rebase;
     }
 
     function _onlyALM() private view {

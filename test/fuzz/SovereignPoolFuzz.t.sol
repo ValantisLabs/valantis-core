@@ -59,6 +59,7 @@ contract SovereignPoolFuzz is SovereignPoolBase {
         uint256 amountOut;
         uint256 reserve0;
         uint256 reserve1;
+        uint256 deadline;
         uint8 flags;
     }
 
@@ -288,6 +289,7 @@ contract SovereignPoolFuzz is SovereignPoolBase {
             (fuzzParams.flags & (1 << 6)) != 0,
             fuzzParams.amountIn,
             fuzzParams.amountOutMin,
+            fuzzParams.deadline,
             _randomUser(),
             ZERO_ADDRESS,
             SovereignPoolSwapContextData(new bytes(0), new bytes(0), new bytes(0), new bytes(0))
@@ -300,6 +302,13 @@ contract SovereignPoolFuzz is SovereignPoolBase {
             swapParams.swapTokenOut = address(token1);
         } else {
             swapParams.swapTokenOut = address(token0);
+        }
+
+        if (block.timestamp > swapParams.deadline) {
+            vm.expectRevert(SovereignPool.SovereignPool__swap_expired.selector);
+            vm.prank(USER);
+            pool.swap(swapParams);
+            return;
         }
 
         if (swapParams.amountIn == 0) {

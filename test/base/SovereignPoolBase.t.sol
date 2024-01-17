@@ -244,14 +244,14 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
         if (pool.isToken0Rebase()) {
             _setupBalanceForUser(address(pool), address(token0), reserve0);
         } else {
-            vm.store(address(pool), bytes32(uint256(9)), bytes32(reserve0));
+            vm.store(address(pool), bytes32(uint256(10)), bytes32(reserve0));
             _setupBalanceForUser(address(pool), address(token0), reserve0);
         }
 
         if (pool.isToken1Rebase()) {
             _setupBalanceForUser(address(pool), address(token1), reserve1);
         } else {
-            vm.store(address(pool), bytes32(uint256(10)), bytes32(reserve1));
+            vm.store(address(pool), bytes32(uint256(11)), bytes32(reserve1));
             _setupBalanceForUser(address(pool), address(token1), reserve1);
         }
     }
@@ -329,8 +329,8 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
     }
 
     function _setReserves(uint256 reserve0, uint256 reserve1) internal {
-        vm.store(address(pool), bytes32(uint256(9)), bytes32(reserve0));
-        vm.store(address(pool), bytes32(uint256(10)), bytes32(reserve1));
+        vm.store(address(pool), bytes32(uint256(10)), bytes32(reserve0));
+        vm.store(address(pool), bytes32(uint256(11)), bytes32(reserve1));
     }
 
     function _setPoolManager(address poolManager) internal {
@@ -342,10 +342,10 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
     }
 
     function _setOracleModule(address oracleModule) internal {
-        vm.store(address(pool), bytes32(uint256(11)), bytes32(uint256(uint160(oracleModule))));
+        vm.store(address(pool), bytes32(uint256(12)), bytes32(uint256(uint160(oracleModule))));
     }
 
     function _setSwapFeeModule(address swapFeeModule) internal {
-        vm.store(address(pool), bytes32(uint256(12)), bytes32(uint256(uint160(swapFeeModule))));
+        vm.store(address(pool), bytes32(uint256(13)), bytes32(uint256(uint160(swapFeeModule))));
     }
 }

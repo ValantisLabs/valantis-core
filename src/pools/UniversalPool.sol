@@ -96,7 +96,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
     /**
         @notice Indicates success of flash loan callback according to ERC3156.
      */
-    bytes32 public constant CALLBACK_SUCCESS = keccak256('ERC3156FlashBorrower.onFlashLoan');
+    bytes32 private constant CALLBACK_SUCCESS = keccak256('ERC3156FlashBorrower.onFlashLoan');
 
     /************************************************
      *  IMMUTABLES
@@ -631,6 +631,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
     /************************************************
      *  PRIVATE FUNCTIONS
      ***********************************************/
+
     /**
         @notice Validates all swap input parameters and creates the SwapCache, almStates and baseALMQuotes arrays.
      */
