@@ -119,17 +119,23 @@ contract SovereignPoolFuzz is SovereignPoolBase {
 
         if (
             pool.isToken0Rebase() &&
+            fuzzParams.amount0 != 0 &&
             Utils.getAbsoluteDiff(fuzzParams.amount0ToDeposit, fuzzParams.amount0) > pool.token0AbsErrorTolerance()
         ) {
             vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_excessiveToken0ErrorOnTransfer.selector);
-        } else if (!pool.isToken0Rebase() && fuzzParams.amount0ToDeposit != fuzzParams.amount0) {
+        } else if (
+            !pool.isToken0Rebase() && fuzzParams.amount0ToDeposit != fuzzParams.amount0 && fuzzParams.amount0 != 0
+        ) {
             vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_insufficientToken0Amount.selector);
         } else if (
             pool.isToken1Rebase() &&
+            fuzzParams.amount1 != 0 &&
             Utils.getAbsoluteDiff(fuzzParams.amount1ToDeposit, fuzzParams.amount1) > pool.token1AbsErrorTolerance()
         ) {
             vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_excessiveToken1ErrorOnTransfer.selector);
-        } else if (!pool.isToken1Rebase() && fuzzParams.amount1ToDeposit != fuzzParams.amount1) {
+        } else if (
+            !pool.isToken1Rebase() && fuzzParams.amount1ToDeposit != fuzzParams.amount1 && fuzzParams.amount1 != 0
+        ) {
             vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_insufficientToken1Amount.selector);
         }
 

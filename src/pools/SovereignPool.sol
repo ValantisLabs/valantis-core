@@ -834,33 +834,39 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
         amount1Deposited = _token1.balanceOf(address(this)) - token1PreBalance;
 
         // Post-deposit checks for token0
-        if (isToken0Rebase) {
-            uint256 amount0AbsDiff = amount0Deposited < _amount0
-                ? _amount0 - amount0Deposited
-                : amount0Deposited - _amount0;
+        // _amount0 == 0 is interpreted as not depositing token0
+        if (_amount0 != 0) {
+            if (isToken0Rebase) {
+                uint256 amount0AbsDiff = amount0Deposited < _amount0
+                    ? _amount0 - amount0Deposited
+                    : amount0Deposited - _amount0;
 
-            if (amount0AbsDiff > token0AbsErrorTolerance) {
-                revert SovereignPool__depositLiquidity_excessiveToken0ErrorOnTransfer();
+                if (amount0AbsDiff > token0AbsErrorTolerance) {
+                    revert SovereignPool__depositLiquidity_excessiveToken0ErrorOnTransfer();
+                }
+            } else {
+                if (amount0Deposited != _amount0) revert SovereignPool__depositLiquidity_insufficientToken0Amount();
+
+                if (amount0Deposited > 0) _reserve0 += amount0Deposited;
             }
-        } else {
-            if (amount0Deposited != _amount0) revert SovereignPool__depositLiquidity_insufficientToken0Amount();
-
-            if (amount0Deposited > 0) _reserve0 += amount0Deposited;
         }
 
         // Post-deposit checks for token1
-        if (isToken1Rebase) {
-            uint256 amount1AbsDiff = amount1Deposited < _amount1
-                ? _amount1 - amount1Deposited
-                : amount1Deposited - _amount1;
+        // _amount1 == 0 is interpreted as not depositing token1
+        if (_amount1 != 0) {
+            if (isToken1Rebase) {
+                uint256 amount1AbsDiff = amount1Deposited < _amount1
+                    ? _amount1 - amount1Deposited
+                    : amount1Deposited - _amount1;
 
-            if (amount1AbsDiff > token1AbsErrorTolerance) {
-                revert SovereignPool__depositLiquidity_excessiveToken1ErrorOnTransfer();
+                if (amount1AbsDiff > token1AbsErrorTolerance) {
+                    revert SovereignPool__depositLiquidity_excessiveToken1ErrorOnTransfer();
+                }
+            } else {
+                if (amount1Deposited != _amount1) revert SovereignPool__depositLiquidity_insufficientToken1Amount();
+
+                if (amount1Deposited > 0) _reserve1 += amount1Deposited;
             }
-        } else {
-            if (amount1Deposited != _amount1) revert SovereignPool__depositLiquidity_insufficientToken1Amount();
-
-            if (amount1Deposited > 0) _reserve1 += amount1Deposited;
         }
 
         emit DepositLiquidity(amount0Deposited, amount1Deposited);
