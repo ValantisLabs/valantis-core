@@ -19,9 +19,7 @@ import {
 import { IUniversalPool } from '../pools/interfaces/IUniversalPool.sol';
 import { ALMPosition, SwapParams, MetaALMData } from '../pools/structs/UniversalPoolStructs.sol';
 import { UniversalPool } from '../pools/UniversalPool.sol';
-import { PoolLocks } from '../pools/structs/ReentrancyGuardStructs.sol';
 import { MockALMStates } from '../../test/helpers/MockUniversalALMHelper.sol';
-import { UniversalPoolReentrancyGuard } from '../utils/UniversalPoolReentrancyGuard.sol';
 import { IFlashBorrower } from '../pools/interfaces/IFlashBorrower.sol';
 
 interface IRefreshReserve {

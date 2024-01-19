@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { PoolLocks, Lock } from '../pools/structs/ReentrancyGuardStructs.sol';
-
 /**
     @notice ReentrancyGuard for Valantis Universal Pool.
     Allows the pool to have precise control over which functions it wants to lock at a particular time.
@@ -21,6 +19,11 @@ import { PoolLocks, Lock } from '../pools/structs/ReentrancyGuardStructs.sol';
 
  */
 abstract contract UniversalPoolReentrancyGuard {
+    enum Lock {
+        WITHDRAWAL, // Bit 0
+        DEPOSIT, // Bit 1
+        SWAP // Bit 2
+    }
     /************************************************
      *  CUSTOM ERRORS
      ***********************************************/
@@ -33,41 +36,51 @@ abstract contract UniversalPoolReentrancyGuard {
     /**
         @notice Indicates that a lock is free to be taken
      */
-    uint8 internal constant _NOT_ENTERED = 1;
+    uint8 internal constant _NOT_ENTERED = 0;
     /**
         @notice Indicates that a lock is taken, thus the function is locked.
      */
-    uint8 internal constant _ENTERED = 2;
+    uint8 internal constant _ENTERED = 1;
 
     /************************************************
      *  STORAGE
      ***********************************************/
+    /**
+        @notice Bitmap where the first 3 bits represent a lock -
+        Bit 0: Withdrawal Lock
+        Bit 1: Deposit Lock
+        Bit 2: Swap Lock
+        Bit 7: Bit is permanently set to 1, at the time of initialization.
 
-    PoolLocks internal _poolLocks;
+        @dev A bit value of 1 indicates that the lock is taken,
+            and a value of 0 indicates that the lock is free.
+            Note: Bit 7 is permanently set to 1 at the time of pool initialization.
+     */
+    uint8 internal _poolLocks;
     /************************************************
      *  MODIFIERS
      ***********************************************/
     /**
         @notice Modifier to lock a function with a particular lock.
-        @param lockType The lock to use. Has to be from one of the locks in PoolLocks.
+        @param lockNum The lock to use. Has to be from one of the locks in PoolLocks.
      */
-    modifier nonReentrant(Lock storage lockType) {
-        _lock(lockType);
+    modifier nonReentrant(Lock lockNum) {
+        _lock(lockNum);
         _;
-        _unlock(lockType);
+        _unlock(lockNum);
     }
 
     /**
         @notice Modifier to lock all functions in the pool.
      */
     modifier nonReentrantGlobal() {
-        _lock(_poolLocks.withdrawals);
-        _lock(_poolLocks.deposit);
-        _lock(_poolLocks.swap);
+        _lock(Lock.WITHDRAWAL);
+        _lock(Lock.DEPOSIT);
+        _lock(Lock.SWAP);
         _;
-        _unlock(_poolLocks.swap);
-        _unlock(_poolLocks.deposit);
-        _unlock(_poolLocks.withdrawals);
+        _unlock(Lock.SWAP);
+        _unlock(Lock.DEPOSIT);
+        _unlock(Lock.WITHDRAWAL);
     }
 
     /************************************************
@@ -75,25 +88,53 @@ abstract contract UniversalPoolReentrancyGuard {
      ***********************************************/
     /**
         @notice Checks that the lock has not already been taken. If lock is free, then it is taken.
-        @param lockType The lock to use. Has to be from one of the locks in PoolLocks.
+        @param lockNum The lock to use. Has to be from one of the locks in PoolLocks.
      */
-    function _lock(Lock storage lockType) internal {
+    function _lock(Lock lockNum) internal {
         // On the first call to nonReentrant, _status will be _NOT_ENTERED
-        if (lockType.value != _NOT_ENTERED) {
+        if (_getLockValue(lockNum) != _NOT_ENTERED) {
             revert UniversalPoolReentrancyGuard__reentrant();
         }
 
         // Any calls to nonReentrant after this point will fail
-        lockType.value = _ENTERED;
+        _setLockValue(lockNum, _ENTERED);
     }
 
     /**
         @notice Frees the lock.
-        @param lockType The lock to use. Has to be from one of the locks in PoolLocks.
+        @param lockNum The lock to use. Has to be from one of the locks in PoolLocks.
      */
-    function _unlock(Lock storage lockType) internal {
+    function _unlock(Lock lockNum) internal {
         // By storing the original value once again, a refund is triggered (see
         // https://eips.ethereum.org/EIPS/eip-2200)
-        lockType.value = _NOT_ENTERED;
+        _setLockValue(lockNum, _NOT_ENTERED);
+    }
+
+    function _getLockValue(Lock lockNum) internal view returns (uint8) {
+        // Until the pool lock is initialized, all locks are taken.
+        if (_poolLocks >> 7 == 0) {
+            return _ENTERED;
+        } else {
+            return ((_poolLocks & (uint8(1) << uint8(lockNum))) >> uint8(lockNum));
+        }
+    }
+
+    function _setLockValue(Lock lockNum, uint8 value) internal {
+        if (value != _getLockValue(lockNum)) {
+            // Flip Bit
+            _poolLocks ^= (uint8(1) << uint8(lockNum));
+        }
+    }
+
+    /**
+        @notice Initializes the pool locks.
+        @dev Should only be called once when the pool is iniitalized
+     */
+    function _initializeLock() internal {
+        _poolLocks |= uint8(1 << 7);
+    }
+
+    function _isLockInitialized() internal view returns (bool) {
+        return _poolLocks >> 7 == 1;
     }
 }

@@ -6,7 +6,6 @@ import { IERC20 } from '../../lib/openzeppelin-contracts/contracts/token/ERC20/I
 import { SafeERC20 } from '../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 
 import { UniversalPoolReentrancyGuard } from '../utils/UniversalPoolReentrancyGuard.sol';
-import { PoolLocks } from './structs/ReentrancyGuardStructs.sol';
 import { IUniversalPool } from './interfaces/IUniversalPool.sol';
 import { IUniversalPoolSwapCallback } from './interfaces/IUniversalPoolSwapCallback.sol';
 import { ISwapFeeModule, SwapFeeModuleData } from '../swap-fee-modules/interfaces/ISwapFeeModule.sol';
@@ -220,7 +219,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         @dev The spotPriceTick view function is locked during a swap to prevent read-only reentrancy.
      */
     function spotPriceTick() external view override returns (int24) {
-        if (_poolLocks.swap.value != _NOT_ENTERED) {
+        if (_getLockValue(Lock.SWAP) != _NOT_ENTERED) {
             revert UniversalPool__spotPriceTick_spotPriceTickLocked();
         }
 
@@ -232,7 +231,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         @dev ALMs and other external smart contracts can use pool locks for reentrancy protection. 
              Mainly useful for view-only reentrancy attack vectors on spotPrice, getALMPositions, etc.
      */
-    function getPoolLockStatus() external view override returns (PoolLocks memory) {
+    function getPoolLockStatus() external view override returns (uint8) {
         return _poolLocks;
     }
 
@@ -282,20 +281,14 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
     function initializeTick(int24 _tick, PoolState memory _initState) external override onlyPoolManager {
         // All locks are initially set to 0
         // @audit initializeTick should only be allowed once
-        if (
-            _poolLocks.withdrawals.value != 0 ||
-            _tick < PriceTickMath.MIN_PRICE_TICK ||
-            _tick > PriceTickMath.MAX_PRICE_TICK
-        ) {
+        if (_isLockInitialized() || _tick < PriceTickMath.MIN_PRICE_TICK || _tick > PriceTickMath.MAX_PRICE_TICK) {
             revert UniversalPool__initializeTick();
         }
 
+        _initializeLock();
+
         _state.setPoolState(_initState);
         _spotPriceTick = _tick;
-
-        _unlock(_poolLocks.withdrawals);
-        _unlock(_poolLocks.deposit);
-        _unlock(_poolLocks.swap);
 
         emit InitializeTick(_tick);
     }
@@ -462,7 +455,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         uint256 _amount0,
         uint256 _amount1,
         bytes memory _depositData
-    ) external override nonReentrant(_poolLocks.deposit) onlyActiveALM {
+    ) external override nonReentrant(Lock.DEPOSIT) onlyActiveALM {
         _ALMPositions.depositLiquidity(_token0, _token1, _amount0, _amount1, _depositData);
     }
 
@@ -477,7 +470,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         uint256 _amount0,
         uint256 _amount1,
         address _recipient
-    ) external override nonReentrant(_poolLocks.withdrawals) {
+    ) external override nonReentrant(Lock.WITHDRAWAL) {
         _ALMPositions.withdrawLiquidity(_token0, _token1, _amount0, _amount1, _recipient);
     }
 
@@ -502,8 +495,8 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
 
         // All withdrawals are paused as soon as swap function starts
         // Deposits are allowed for JIT liquidity
-        _lock(_poolLocks.swap);
-        _lock(_poolLocks.withdrawals);
+        _lock(Lock.SWAP);
+        _lock(Lock.WITHDRAWAL);
 
         (
             SwapCache memory swapCache,
@@ -532,7 +525,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         // Make initial communication calls to the ALM
         swapCache.spotPriceTick = almStates.setupSwaps(baseALMQuotes, _ALMPositions, _swapParams, swapCache);
 
-        _lock(_poolLocks.deposit);
+        _lock(Lock.DEPOSIT);
 
         if (swapCache.amountInRemaining != 0 && swapCache.spotPriceTick != swapCache.spotPriceTickStart) {
             // Request for quotes
@@ -617,15 +610,15 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
 
         // After ALM state has been updated, and amounts have been transfered, pool is unlocked
         // ALMs can now withdraw
-        _unlock(_poolLocks.withdrawals);
-        _unlock(_poolLocks.deposit);
+        _unlock(Lock.WITHDRAWAL);
+        _unlock(Lock.DEPOSIT);
 
         // Update ALM positions internal state
         almStates.updateALMPositionsOnSwapEnd(_swapParams, swapCache);
 
         emit Swap(msg.sender, amountInUsed, amountOut, _swapParams.isZeroToOne);
 
-        _unlock(_poolLocks.swap);
+        _unlock(Lock.SWAP);
     }
 
     /************************************************

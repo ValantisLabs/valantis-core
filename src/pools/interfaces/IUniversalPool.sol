@@ -3,7 +3,6 @@ pragma solidity 0.8.19;
 
 import { Slot0, ALMPosition, ALMStatus, PoolState, SwapParams } from '../structs/UniversalPoolStructs.sol';
 import { IValantisPool } from '../interfaces/IValantisPool.sol';
-import { PoolLocks } from '../structs/ReentrancyGuardStructs.sol';
 import { ALMReserves } from '../../ALM/structs/UniversalALMStructs.sol';
 
 interface IUniversalPool is IValantisPool {
@@ -27,7 +26,7 @@ interface IUniversalPool is IValantisPool {
 
     function getALMPositionsList() external view returns (ALMPosition[] memory);
 
-    function getPoolLockStatus() external view returns (PoolLocks memory);
+    function getPoolLockStatus() external view returns (uint8);
 
     function getALMPositionAtAddress(
         address _almPositionAddress
