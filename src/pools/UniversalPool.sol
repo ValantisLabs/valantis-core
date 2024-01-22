@@ -5,7 +5,7 @@ import { Math } from '../../lib/openzeppelin-contracts/contracts/utils/math/Math
 import { IERC20 } from '../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import { SafeERC20 } from '../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 
-import { Lock, UniversalPoolReentrancyGuard } from '../utils/UniversalPoolReentrancyGuard.sol';
+import { UniversalPoolReentrancyGuard } from '../utils/UniversalPoolReentrancyGuard.sol';
 import { IUniversalPool } from './interfaces/IUniversalPool.sol';
 import { IUniversalPoolSwapCallback } from './interfaces/IUniversalPoolSwapCallback.sol';
 import { ISwapFeeModule, SwapFeeModuleData } from '../swap-fee-modules/interfaces/ISwapFeeModule.sol';
@@ -219,7 +219,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         @dev The spotPriceTick view function is locked during a swap to prevent read-only reentrancy.
      */
     function spotPriceTick() external view override returns (int24) {
-        if (_getLockValue(Lock.SWAP) != _NOT_ENTERED) {
+        if (_getLockValue(UniversalPoolReentrancyGuard.Lock.SWAP) != _NOT_ENTERED) {
             revert UniversalPool__spotPriceTick_spotPriceTickLocked();
         }
 
@@ -455,7 +455,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         uint256 _amount0,
         uint256 _amount1,
         bytes memory _depositData
-    ) external override nonReentrant(Lock.DEPOSIT) onlyActiveALM {
+    ) external override nonReentrant(UniversalPoolReentrancyGuard.Lock.DEPOSIT) onlyActiveALM {
         _ALMPositions.depositLiquidity(_token0, _token1, _amount0, _amount1, _depositData);
     }
 
@@ -470,7 +470,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         uint256 _amount0,
         uint256 _amount1,
         address _recipient
-    ) external override nonReentrant(Lock.WITHDRAWAL) {
+    ) external override nonReentrant(UniversalPoolReentrancyGuard.Lock.WITHDRAWAL) {
         _ALMPositions.withdrawLiquidity(_token0, _token1, _amount0, _amount1, _recipient);
     }
 
@@ -495,8 +495,8 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
 
         // All withdrawals are paused as soon as swap function starts
         // Deposits are allowed for JIT liquidity
-        _lock(Lock.SWAP);
-        _lock(Lock.WITHDRAWAL);
+        _lock(UniversalPoolReentrancyGuard.Lock.SWAP);
+        _lock(UniversalPoolReentrancyGuard.Lock.WITHDRAWAL);
 
         (
             SwapCache memory swapCache,
@@ -525,7 +525,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         // Make initial communication calls to the ALM
         swapCache.spotPriceTick = almStates.setupSwaps(baseALMQuotes, _ALMPositions, _swapParams, swapCache);
 
-        _lock(Lock.DEPOSIT);
+        _lock(UniversalPoolReentrancyGuard.Lock.DEPOSIT);
 
         if (swapCache.amountInRemaining != 0 && swapCache.spotPriceTick != swapCache.spotPriceTickStart) {
             // Request for quotes
@@ -610,15 +610,15 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
 
         // After ALM state has been updated, and amounts have been transfered, pool is unlocked
         // ALMs can now withdraw
-        _unlock(Lock.WITHDRAWAL);
-        _unlock(Lock.DEPOSIT);
+        _unlock(UniversalPoolReentrancyGuard.Lock.WITHDRAWAL);
+        _unlock(UniversalPoolReentrancyGuard.Lock.DEPOSIT);
 
         // Update ALM positions internal state
         almStates.updateALMPositionsOnSwapEnd(_swapParams, swapCache);
 
         emit Swap(msg.sender, amountInUsed, amountOut, _swapParams.isZeroToOne);
 
-        _unlock(Lock.SWAP);
+        _unlock(UniversalPoolReentrancyGuard.Lock.SWAP);
     }
 
     /************************************************

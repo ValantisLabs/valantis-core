@@ -18,13 +18,13 @@ pragma solidity 0.8.19;
     
 
  */
-enum Lock {
-    WITHDRAWAL, // Bit 0
-    DEPOSIT, // Bit 1
-    SWAP // Bit 2
-}
 
 abstract contract UniversalPoolReentrancyGuard {
+    enum Lock {
+        WITHDRAWAL, // Bit 0
+        DEPOSIT, // Bit 1
+        SWAP // Bit 2
+    }
     /************************************************
      *  CUSTOM ERRORS
      ***********************************************/
