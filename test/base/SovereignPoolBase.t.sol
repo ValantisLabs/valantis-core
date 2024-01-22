@@ -6,7 +6,12 @@ import { IERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.
 import { SafeERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 
 import { ALMLiquidityQuoteInput, ALMLiquidityQuote } from 'src/ALM/structs/SovereignALMStructs.sol';
-import { SovereignPoolConstructorArgs, SovereignPoolSwapParams } from 'src/pools/structs/SovereignPoolStructs.sol';
+import {
+    SovereignPoolConstructorArgs,
+    SovereignPoolSwapParams,
+    SovereignPoolSwapContextData,
+    SwapCache
+} from 'src/pools/structs/SovereignPoolStructs.sol';
 import { SovereignPool } from 'src/pools/SovereignPool.sol';
 import { ProtocolFactory } from 'src/protocol-factory/ProtocolFactory.sol';
 import { SwapFeeModuleData } from 'src/swap-fee-modules/interfaces/ISwapFeeModule.sol';
