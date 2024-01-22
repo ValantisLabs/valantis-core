@@ -5,7 +5,7 @@ import { Math } from '../../lib/openzeppelin-contracts/contracts/utils/math/Math
 import { IERC20 } from '../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import { SafeERC20 } from '../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 
-import { UniversalPoolReentrancyGuard } from '../utils/UniversalPoolReentrancyGuard.sol';
+import { Lock, UniversalPoolReentrancyGuard } from '../utils/UniversalPoolReentrancyGuard.sol';
 import { IUniversalPool } from './interfaces/IUniversalPool.sol';
 import { IUniversalPoolSwapCallback } from './interfaces/IUniversalPoolSwapCallback.sol';
 import { ISwapFeeModule, SwapFeeModuleData } from '../swap-fee-modules/interfaces/ISwapFeeModule.sol';

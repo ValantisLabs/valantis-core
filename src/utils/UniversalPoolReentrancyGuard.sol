@@ -18,17 +18,20 @@ pragma solidity 0.8.19;
     
 
  */
+enum Lock {
+    WITHDRAWAL, // Bit 0
+    DEPOSIT, // Bit 1
+    SWAP // Bit 2
+}
+
 abstract contract UniversalPoolReentrancyGuard {
-    enum Lock {
-        WITHDRAWAL, // Bit 0
-        DEPOSIT, // Bit 1
-        SWAP // Bit 2
-    }
     /************************************************
      *  CUSTOM ERRORS
      ***********************************************/
 
     error UniversalPoolReentrancyGuard__reentrant();
+    error UniversalPoolReentrancyGuard___setLockValue();
+    error UniversalPoolReentrancyGuard___initializeLock();
 
     /************************************************
      *  CONSTANTS
@@ -47,13 +50,13 @@ abstract contract UniversalPoolReentrancyGuard {
      ***********************************************/
     /**
         @notice Bitmap where the first 3 bits represent a lock -
-        Bit 0: Withdrawal Lock
+        Bit 0: Withdraw Lock
         Bit 1: Deposit Lock
         Bit 2: Swap Lock
         Bit 7: Bit is permanently set to 1, at the time of initialization.
 
         @dev A bit value of 1 indicates that the lock is taken,
-            and a value of 0 indicates that the lock is free.
+            and a value of 0 indicates that the lock is free. 
             Note: Bit 7 is permanently set to 1 at the time of pool initialization.
      */
     uint8 internal _poolLocks;
@@ -112,26 +115,35 @@ abstract contract UniversalPoolReentrancyGuard {
 
     function _getLockValue(Lock lockNum) internal view returns (uint8) {
         // Until the pool lock is initialized, all locks are taken.
-        if (_poolLocks >> 7 == 0) {
+        if (!_isLockInitialized()) {
             return _ENTERED;
         } else {
-            return ((_poolLocks & (uint8(1) << uint8(lockNum))) >> uint8(lockNum));
+            return ((_poolLocks >> uint8(lockNum)) & uint8(1));
         }
     }
 
-    function _setLockValue(Lock lockNum, uint8 value) internal {
-        if (value != _getLockValue(lockNum)) {
+    /**
+        @notice Should never be called directly
+     */
+    function _setLockValue(Lock lockNum, uint8 value) private {
+        if (value != _getLockValue(lockNum) || value > 2) {
             // Flip Bit
             _poolLocks ^= (uint8(1) << uint8(lockNum));
+        } else {
+            revert UniversalPoolReentrancyGuard___setLockValue();
         }
     }
 
     /**
         @notice Initializes the pool locks.
-        @dev Should only be called once when the pool is iniitalized
+        @dev Should only be called once, at the time of pool iniitalization.
      */
     function _initializeLock() internal {
-        _poolLocks |= uint8(1 << 7);
+        if (_poolLocks == 0) {
+            _poolLocks = uint8(1 << 7);
+        } else {
+            revert UniversalPoolReentrancyGuard___initializeLock();
+        }
     }
 
     function _isLockInitialized() internal view returns (bool) {
