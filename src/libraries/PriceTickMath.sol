@@ -278,7 +278,7 @@ library PriceTickMath {
         @notice Returns Q128.128 price at `absTick`.
         @dev Always overestimates relatively the ground truth value.
         @param absTick Price in log-space.
-        @dev It is assumed that `absTick` < MAX_PRICE_TICK.
+        @dev It is assumed that `absTick` <= MAX_PRICE_TICK.
         @return priceX128 Price in Q128.128 format.
      */
     function _getPriceAtAbsTickOver(uint256 absTick) private pure returns (uint256 priceX128) {
@@ -310,7 +310,7 @@ library PriceTickMath {
         @notice Returns Q128.128 price at `absTick`. Always underestimates. Assumes absTick < MAX_PRICE_TICK
         @dev Always underestimates relatively to the ground truth value.
         @param absTick Price in log-space.
-        @dev It is assumed that `absTick` < MAX_PRICE_TICK.
+        @dev It is assumed that `absTick` <= MAX_PRICE_TICK.
         @return priceX128 Price in Q128.128 format.
      */
     function _getPriceAtAbsTickUnder(uint256 absTick) private pure returns (uint256 priceX128) {
