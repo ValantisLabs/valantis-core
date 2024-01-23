@@ -13,26 +13,26 @@ contract PriceTickMathTest is Test {
 
     function test_getPriceAtTick(int24 tick) public {
         if (tick < PriceTickMath.MIN_PRICE_TICK || tick > PriceTickMath.MAX_PRICE_TICK) {
-            vm.expectRevert(PriceTickMath.PriceTickMath__getPriceAtTick_invalidPriceTick.selector);
+            vm.expectRevert(PriceTickMath.PriceTickMath__getPriceAtTickOver_invalidPriceTick.selector);
         }
-        uint256 priceX128 = PriceTickMath.getPriceAtTick(tick);
+        uint256 priceX128Over = PriceTickMath.getPriceAtTickOver(tick);
 
-        int24 tickResult = PriceTickMath.getTickAtPrice(priceX128);
-        assertEq(tickResult, tick);
+        int24 tickResultOver = PriceTickMath.getTickAtPriceOver(priceX128Over);
+        assertEq(tickResultOver, tick);
     }
 
     function test_getTickAtPrice(uint256 price) public {
         if (price < PriceTickMath.MIN_PRICE || price >= PriceTickMath.MAX_PRICE) {
-            vm.expectRevert(PriceTickMath.PriceTickMath__getTickAtPrice_invalidPrice.selector);
+            vm.expectRevert(PriceTickMath.PriceTickMath__getTickAtPriceOver_invalidPrice.selector);
         }
 
-        int24 tick = PriceTickMath.getTickAtPrice(price);
-        uint256 priceResult = PriceTickMath.getPriceAtTick(tick);
+        int24 tick = PriceTickMath.getTickAtPriceOver(price);
+        uint256 priceResult = PriceTickMath.getPriceAtTickOver(tick);
 
-        if (tick != PriceTickMath.MAX_PRICE_TICK) assert(PriceTickMath.getPriceAtTick(tick + 1) > price);
+        if (tick != PriceTickMath.MAX_PRICE_TICK) assert(PriceTickMath.getPriceAtTickOver(tick + 1) > price);
 
-        assert(PriceTickMath.getPriceAtTick(tick) <= price);
-        assertEq(PriceTickMath.getTickAtPrice(priceResult), tick);
+        assert(PriceTickMath.getPriceAtTickOver(tick) <= price);
+        assertEq(PriceTickMath.getTickAtPriceOver(priceResult), tick);
     }
 
     function test_uniqueTickValues() public {
@@ -42,7 +42,7 @@ contract PriceTickMathTest is Test {
         uint256 price;
 
         for (int24 tick = startTick; tick <= PriceTickMath.MAX_PRICE_TICK; ) {
-            price = PriceTickMath.getPriceAtTick(tick);
+            price = PriceTickMath.getPriceAtTickOver(tick);
             if (price == priceCache) {
                 console.logInt(tick);
                 assertEq(false, true, 'Duplication Found');
@@ -55,7 +55,7 @@ contract PriceTickMathTest is Test {
         }
 
         for (int24 tick = -startTick; tick >= PriceTickMath.MIN_PRICE_TICK; ) {
-            price = PriceTickMath.getPriceAtTick(tick);
+            price = PriceTickMath.getPriceAtTickOver(tick);
             if (price == priceCache) {
                 console.logInt(tick);
                 assertEq(false, true, 'Duplication Found');
