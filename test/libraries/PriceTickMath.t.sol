@@ -35,7 +35,23 @@ contract PriceTickMathTest is Test {
         assertEq(PriceTickMath.getTickAtPriceOver(priceResult), tick);
     }
 
+    function test_getPriceAtTickOverAndUnder(int24 tick) public {
+        if (tick < PriceTickMath.MIN_PRICE_TICK || tick > PriceTickMath.MAX_PRICE_TICK) {
+            vm.expectRevert(PriceTickMath.PriceTickMath__getPriceAtTickOver_invalidPriceTick.selector);
+        }
+        uint256 priceX128Over = PriceTickMath.getPriceAtTickOver(tick);
+        uint256 priceX128Under = PriceTickMath.getPriceAtTickUnder(tick);
+        // Check that that priceX128Over is always no smaller than priceX128Under
+        assertTrue(priceX128Over >= priceX128Under);
+    }
+
     function test_uniqueTickValues() public {
+        uint256 priceMin = PriceTickMath.getPriceAtTickOver(PriceTickMath.MIN_PRICE_TICK);
+        console.log('MIN_PRICE: ', priceMin);
+
+        uint256 priceMax = PriceTickMath.getPriceAtTickOver(PriceTickMath.MAX_PRICE_TICK);
+        console.log('MAX_PRICE: ', priceMax);
+
         int24 startTick = 600_000;
 
         uint256 priceCache;

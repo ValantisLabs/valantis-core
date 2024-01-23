@@ -36,6 +36,7 @@ library PriceTickMath {
 
     /**
         @notice MIN_PRICE <= price <= MAX_PRICE
+        @dev Computed as getPriceAtTick(MIN_PRICE_TICK) and getPriceAtTick(MAX_PRICE_TICK)
      */
     // solhint-disable-next-line private-vars-leading-underscore
     uint256 internal constant MIN_PRICE = 16777401;
@@ -43,7 +44,8 @@ library PriceTickMath {
     uint256 internal constant MAX_PRICE = 6901670243043972986255200373924895033102563660822112080378694173663318;
 
     /**
-        @notice Returns Q128.128 price at `tick`. Always overestimates.
+        @notice Returns Q128.128 price at `tick`.
+        @dev Always overestimates relatively to the true price.
         @param tick Price in log-space.
         @return priceX128 Price in Q128.128 format.
      */
@@ -64,7 +66,8 @@ library PriceTickMath {
     }
 
     /**
-        @notice Returns Q128.128 price at `tick`. Always underestimates.
+        @notice Returns Q128.128 price at `tick`.
+        @dev Always underestimates relatively to the true price.
         @param tick Price in log-space.
         @return priceX128 Price in Q128.128 format.
      */
@@ -86,7 +89,7 @@ library PriceTickMath {
 
     /**
         @notice Compute log_1.0001(priceX128) .
-        @param priceX128 Input uint256, computed as an over-estimate of true price.
+        @param priceX128 Input uint256, computed as an overestimate of true price.
         @return tick Output int24.
      */
     function getTickAtPriceOver(uint256 priceX128) internal pure returns (int24 tick) {
@@ -234,7 +237,9 @@ library PriceTickMath {
     }
 
     /**
-        @notice Computes tokenOut amount given tokenInAmount. Always underestimates.
+        @notice Computes tokenOut amount given tokenInAmount.
+        @dev Always underestimates relatively to the true amount,
+             hence acting in favor of LPs.
         @param isZeroToOne Direction of the swap.
         @param tokenInAmount Amount of input token.
         @param priceTick Price tick.
@@ -251,7 +256,9 @@ library PriceTickMath {
     }
 
     /**
-        @notice Computes tokenIn amount given `tokenOutAmount`. Always overestimates.
+        @notice Computes tokenIn amount given `tokenOutAmount`.
+        @dev Always overestimates relatively to the true amount,
+             hence acting in favor of LPs.
         @param isZeroToOne Direction of the swap.
         @param tokenOutAmount Amount of output token.
         @param priceTick Price tick.
