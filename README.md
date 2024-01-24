@@ -1,3 +1,5 @@
+![Valantis](img/Valantis_Banner.png)
+
 # Valantis
 
 Implementation of the Valantis Core smart contracts in Solidity.
