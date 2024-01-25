@@ -73,6 +73,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
     error UniversalPool__initializeTick();
     error UniversalPool__spotPriceTick_spotPriceTickLocked();
     error UniversalPool__swap_excessiveSwapFee();
+    error UniversalPool__swap_expired();
     error UniversalPool__swap_insufficientAmountIn();
     error UniversalPool__swap_amountInCannotBeZero();
     error UniversalPool__swap_minAmountOutNotFilled();
@@ -498,6 +499,10 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         @return amountOut Amount of tokenOut user will receive.
      */
     function swap(SwapParams calldata _swapParams) external override returns (uint256 amountInUsed, uint256 amountOut) {
+        if (block.timestamp > _swapParams.deadline) {
+            revert UniversalPool__swap_expired();
+        }
+
         // @audit : Check for multi function reentrancy in swap function
 
         // All withdrawals are paused as soon as swap function starts

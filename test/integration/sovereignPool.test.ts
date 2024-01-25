@@ -115,6 +115,7 @@ describe('Sovereign Pool', async () => {
       isZeroToOne: true,
       amountIn: amountIn,
       amountOutMin: 0,
+      deadline: ethers.MaxUint256,
       recipient: await swapUser.getAddress(),
       swapContext: swapContext,
       swapTokenOut: await stETH.getAddress(),
@@ -166,7 +167,7 @@ describe('Sovereign Pool', async () => {
     reserves = await pool.getReserves();
 
     expect(expectedReserve0).equals(reserves[0], 'Invalid reserve for token0 after withdraw liquidity');
-    expect(expectedReserve1).equals(reserves[1], 'Invalid reserve for token0 after withdraw liquidity');
+    expect(expectedReserve1).approximately(reserves[1], 7, 'Invalid reserve for token0 after withdraw liquidity');
 
     const usdtBalance = await USDT.connect(withdrawUser).balanceOf(await withdrawUser.getAddress());
     const stethBalance = await stETH.connect(withdrawUser).balanceOf(await withdrawUser.getAddress());

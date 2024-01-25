@@ -39,6 +39,7 @@ struct SwapParams {
     address recipient;
     uint256 amountIn;
     uint256 amountOutMin;
+    uint256 deadline;
     bytes swapCallbackContext;
     bytes swapFeeModuleContext;
     uint8[] almOrdering;

@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import '../../lib/forge-std/src/Test.sol';
-import '../../lib/forge-std/src/console.sol';
-
 import { IERC20 } from '../../lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import { SafeERC20 } from '../../lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 
@@ -20,7 +17,6 @@ import { IUniversalPool } from '../pools/interfaces/IUniversalPool.sol';
 import { ALMPosition, SwapParams, MetaALMData } from '../pools/structs/UniversalPoolStructs.sol';
 import { UniversalPool } from '../pools/UniversalPool.sol';
 import { PoolLocks } from '../pools/structs/ReentrancyGuardStructs.sol';
-import { MockALMStates } from '../../test/helpers/MockUniversalALMHelper.sol';
 import { UniversalPoolReentrancyGuard } from '../utils/UniversalPoolReentrancyGuard.sol';
 import { IFlashBorrower } from '../pools/interfaces/IFlashBorrower.sol';
 
@@ -29,6 +25,8 @@ interface IRefreshReserve {
 }
 
 contract MockUniversalALM is IUniversalALM {
+    using SafeERC20 for IERC20;
+
     address pool;
     bool metaALM;
 
@@ -102,5 +100,16 @@ contract MockUniversalALM is IUniversalALM {
         ALMCachedLiquidityQuote calldata latestQuote
     ) external {}
 
-    function onDepositLiquidityCallback(uint256 _amount0, uint256 _amount1, bytes memory _data) external override {}
+    function depositLiquidity(uint256 amount0, uint256 amount1) external {
+        IUniversalPool(pool).depositLiquidity(amount0, amount1, abi.encode(msg.sender));
+    }
+
+    function onDepositLiquidityCallback(uint256 _amount0, uint256 _amount1, bytes memory _data) external override {
+        IUniversalPool universalPool = IUniversalPool(pool);
+
+        address user = abi.decode(_data, (address));
+
+        IERC20(universalPool.token0()).safeTransferFrom(user, msg.sender, _amount0);
+        IERC20(universalPool.token1()).safeTransferFrom(user, msg.sender, _amount1);
+    }
 }
