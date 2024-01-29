@@ -6,7 +6,25 @@ import { console } from 'forge-std/console.sol';
 
 import { PriceTickMath } from 'src/libraries/PriceTickMath.sol';
 
+contract Harness {
+    function getPriceAtTick(int24 tick) external pure returns (uint256) {
+        uint256 priceX128 = PriceTickMath.getPriceAtTick(tick);
+        return priceX128;
+    }
+
+    function getTickAtPrice(uint256 priceX128) external pure returns (int24) {
+        int24 tick = PriceTickMath.getTickAtPrice(priceX128);
+        return tick;
+    }
+}
+
 contract PriceTickMathTest is Test {
+    Harness harness;
+
+    function setUp() public {
+        harness = new Harness();
+    }
+
     /************************************************
      *  Test Functions
      ***********************************************/
@@ -15,9 +33,13 @@ contract PriceTickMathTest is Test {
         if (tick < PriceTickMath.MIN_PRICE_TICK || tick > PriceTickMath.MAX_PRICE_TICK) {
             vm.expectRevert(PriceTickMath.PriceTickMath__getPriceAtTickOver_invalidPriceTick.selector);
         }
-        uint256 priceX128Over = PriceTickMath.getPriceAtTickOver(tick);
+        uint256 priceX128Over = harness.getPriceAtTickOver(tick);
 
-        int24 tickResultOver = PriceTickMath.getTickAtPriceOver(priceX128Over);
+        if (tick < PriceTickMath.MIN_PRICE_TICK || tick > PriceTickMath.MAX_PRICE_TICK) {
+            return;
+        }
+
+        int24 tickResultOver = harness.getTickAtPriceOver(priceX128Over);
         assertEq(tickResultOver, tick);
     }
 
@@ -26,13 +48,18 @@ contract PriceTickMathTest is Test {
             vm.expectRevert(PriceTickMath.PriceTickMath__getTickAtPriceOver_invalidPrice.selector);
         }
 
-        int24 tick = PriceTickMath.getTickAtPriceOver(price);
-        uint256 priceResult = PriceTickMath.getPriceAtTickOver(tick);
+        int24 tick = harness.getTickAtPriceOver(price);
 
-        if (tick != PriceTickMath.MAX_PRICE_TICK) assert(PriceTickMath.getPriceAtTickOver(tick + 1) > price);
+        if (price < PriceTickMath.MIN_PRICE || price >= PriceTickMath.MAX_PRICE) {
+            return;
+        }
 
-        assert(PriceTickMath.getPriceAtTickOver(tick) <= price);
-        assertEq(PriceTickMath.getTickAtPriceOver(priceResult), tick);
+        uint256 priceResult = harness.getPriceAtTickOver(tick);
+
+        if (tick != PriceTickMath.MAX_PRICE_TICK) assert(harness.getPriceAtTickOver(tick + 1) > price);
+
+        assert(harness.getPriceAtTickOver(tick) <= price);
+        assertEq(harness.getTickAtPriceOver(priceResult), tick);
     }
 
     function test_getPriceAtTickOverAndUnder(int24 tick) public {
@@ -58,7 +85,7 @@ contract PriceTickMathTest is Test {
         uint256 price;
 
         for (int24 tick = startTick; tick <= PriceTickMath.MAX_PRICE_TICK; ) {
-            price = PriceTickMath.getPriceAtTickOver(tick);
+            price = harness.getPriceAtTickOver(tick);
             if (price == priceCache) {
                 console.logInt(tick);
                 assertEq(false, true, 'Duplication Found');
@@ -71,7 +98,7 @@ contract PriceTickMathTest is Test {
         }
 
         for (int24 tick = -startTick; tick >= PriceTickMath.MIN_PRICE_TICK; ) {
-            price = PriceTickMath.getPriceAtTickOver(tick);
+            price = harness.getPriceAtTickOver(tick);
             if (price == priceCache) {
                 console.logInt(tick);
                 assertEq(false, true, 'Duplication Found');

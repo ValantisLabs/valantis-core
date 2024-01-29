@@ -13,6 +13,7 @@ import {
     InternalSwapALMState,
     UnderlyingALMQuote,
     PoolState,
+    ALMStatus,
     SwapParams
 } from 'src/pools/structs/UniversalPoolStructs.sol';
 import { EnumerableALMMap } from 'src/libraries/EnumerableALMMap.sol';
@@ -28,6 +29,107 @@ import {
 import { IUniversalALM } from 'src/ALM/interfaces/IUniversalALM.sol';
 
 import { MockUniversalALMHelper } from 'test/helpers/MockUniversalALMHelper.sol';
+
+contract Harness {
+    using EnumerableALMMap for EnumerableALMMap.ALMSet;
+
+    EnumerableALMMap.ALMSet public ALMPositions;
+    PoolState public poolState;
+
+    function getALM(address almAddress) external view returns (ALMStatus, ALMPosition memory) {
+        (ALMStatus status, ALMPosition memory almPosition) = EnumerableALMMap.getALM(ALMPositions, almAddress);
+        return (status, almPosition);
+    }
+
+    function poolManagerFeeBips() external view returns (uint256) {
+        return poolState.poolManagerFeeBips;
+    }
+
+    function feePoolManager0() external view returns (uint256) {
+        return poolState.feePoolManager0;
+    }
+
+    function feePoolManager1() external view returns (uint256) {
+        return poolState.feePoolManager1;
+    }
+
+    function updateState(PoolState memory state) external {
+        poolState = state;
+    }
+
+    function add(ALMPosition memory almPosition) external {
+        ALMPositions.add(almPosition);
+    }
+
+    function setReserves(address alm, uint256 almReserve0, uint256 almReserve1) external {
+        (, ALMPosition storage almPosition) = ALMPositions.getALM(alm);
+
+        almPosition.reserve0 = almReserve0;
+        almPosition.reserve1 = almReserve1;
+    }
+
+    function setFees(address alm, uint256 fee0, uint256 fee1) external {
+        (, ALMPosition storage almPosition) = ALMPositions.getALM(alm);
+
+        almPosition.feeCumulative0 = fee0;
+        almPosition.feeCumulative1 = fee1;
+    }
+
+    function refreshReserves(uint256 amount0, uint256 amount1) external {
+        (, ALMPosition storage almPosition) = ALMPositions.getALM(msg.sender);
+        almPosition.reserve0 += amount0;
+        almPosition.reserve1 += amount1;
+    }
+
+    function updateALMPositionsOnSwapEnd(
+        InternalSwapALMState[] calldata almStates,
+        SwapParams calldata swapParams,
+        SwapCache calldata swapCache
+    ) public {
+        GM.updateALMPositionsOnSwapEnd(almStates, swapParams, swapCache);
+    }
+
+    function requestForQuotes(
+        InternalSwapALMState[] calldata almStates,
+        UnderlyingALMQuote[] calldata baseALMQuotes,
+        SwapParams calldata swapParams,
+        SwapCache calldata swapCache
+    ) public returns (InternalSwapALMState[] memory, UnderlyingALMQuote[] memory, SwapCache memory) {
+        InternalSwapALMState[] memory memAlmStates = almStates;
+        UnderlyingALMQuote[] memory memBaseALMQuotes = baseALMQuotes;
+        SwapCache memory memSwapCache = swapCache;
+        int24 tick = GM.requestForQuotes(memAlmStates, memBaseALMQuotes, swapParams, memSwapCache);
+        memSwapCache.spotPriceTick = tick;
+        return (memAlmStates, memBaseALMQuotes, memSwapCache);
+    }
+
+    function updatePoolState(
+        InternalSwapALMState[] calldata almStates,
+        SwapParams calldata swapParams,
+        SwapCache calldata swapCache
+    ) public returns (InternalSwapALMState[] memory, SwapCache memory) {
+        InternalSwapALMState[] memory memAlmStates = almStates;
+        SwapCache memory memSwapCache = swapCache;
+        GM.updatePoolState(memAlmStates, ALMPositions, poolState, swapParams, memSwapCache);
+        return (memAlmStates, memSwapCache);
+    }
+
+    function setupSwap(
+        InternalSwapALMState[] memory almStates,
+        UnderlyingALMQuote[] memory baseALMQuotes,
+        SwapParams calldata swapParams,
+        SwapCache memory swapCache
+    ) public returns (InternalSwapALMState[] memory, UnderlyingALMQuote[] memory, SwapCache memory) {
+        InternalSwapALMState[] memory memAlmStates = almStates;
+        UnderlyingALMQuote[] memory memBaseALMQuotes = baseALMQuotes;
+        SwapCache memory memSwapCache = swapCache;
+
+        int24 tick = GM.setupSwaps(memAlmStates, memBaseALMQuotes, ALMPositions, swapParams, memSwapCache);
+        memSwapCache.spotPriceTick = tick;
+
+        return (memAlmStates, memBaseALMQuotes, memSwapCache);
+    }
+}
 
 contract GMTest is Test {
     using EnumerableALMMap for EnumerableALMMap.ALMSet;
@@ -87,21 +189,26 @@ contract GMTest is Test {
     PoolState internal poolState;
     EnumerableALMMap.ALMSet internal ALMPositions;
     address[] internal alms;
+    Harness harness;
 
     function setUp() public {
         alms.push(MockUniversalALMHelper.deployMockALM(address(this), false));
         alms.push(MockUniversalALMHelper.deployMockALM(address(this), false));
         alms.push(MockUniversalALMHelper.deployMockALM(address(this), true));
 
-        ALMPositions.add(ALMPosition(Slot0(false, false, false, 0, alms[0]), 0, 0, 0, 0));
-        ALMPositions.add(ALMPosition(Slot0(false, false, false, 0, alms[1]), 0, 0, 0, 0));
+        harness = new Harness();
+
+        harness.add(ALMPosition(Slot0(false, false, true, 0, alms[0]), 0, 0, 0, 0));
+        harness.add(ALMPosition(Slot0(false, false, true, 0, alms[1]), 0, 0, 0, 0));
         // 3rd alm is meta alm
-        ALMPositions.add(ALMPosition(Slot0(true, false, false, 0, alms[2]), 0, 0, 0, 0));
+        harness.add(ALMPosition(Slot0(true, false, false, 0, alms[2]), 0, 0, 0, 0));
     }
 
     /************************************************
      *  Test functions
      ***********************************************/
+
+    function test_setupSwaps_concrete() public {}
 
     function test_setupSwaps(SetupSwapFuzzParams memory args) public {
         // tick will be same throug out all alm calls in setup swap
@@ -144,7 +251,7 @@ contract GMTest is Test {
                 quotes[i] = _constructLiquidityQuote(almFlag, amountOut, percent);
             }
 
-            (, ALMPosition memory almPosition) = ALMPositions.getALM(alms[i]);
+            (, ALMPosition memory almPosition) = harness.getALM(alms[i]);
 
             console.log(almPosition.reserve0, almPosition.reserve1);
             swapParams.externalContext[i] = abi.encode(
@@ -172,11 +279,11 @@ contract GMTest is Test {
 
         if (errorData.length > 0) {
             vm.expectRevert(errorData);
-            this.setupSwap(almStates, baseALMQuotes, swapParams, swapCache);
+            harness.setupSwap(almStates, baseALMQuotes, swapParams, swapCache);
             return;
         }
 
-        (almStates, baseALMQuotes, swapCache) = this.setupSwap(almStates, baseALMQuotes, swapParams, swapCache);
+        (almStates, baseALMQuotes, swapCache) = harness.setupSwap(almStates, baseALMQuotes, swapParams, swapCache);
 
         for (uint i = 0; i < 3; i++) {
             (bool isParticipatingInSwap, , , , ALMLiquidityQuote memory quote) = abi.decode(
@@ -204,6 +311,8 @@ contract GMTest is Test {
         poolState.feePoolManager0 = args.poolManagerFees >> 128;
         poolState.feePoolManager1 = args.poolManagerFees << 128;
         poolState.poolManagerFeeBips = 1e2;
+
+        harness.updateState(poolState);
 
         for (uint256 i = 0; i < 3; i++) {
             _setReserves(i, args.reserve0, args.reserve1);
@@ -250,23 +359,23 @@ contract GMTest is Test {
 
         bytes32 swapCacheHash = keccak256(abi.encode(swapCache));
 
-        (almStates, swapCache) = this.updatePoolState(almStates, swapParams, swapCache);
+        (almStates, swapCache) = harness.updatePoolState(almStates, swapParams, swapCache);
 
         // swapCache shouldn't change
         assertEq(keccak256(abi.encode(swapCache)), swapCacheHash, 'Swap Cache should not be updated');
 
-        uint256 totalALMFee = Math.mulDiv(swapCache.effectiveFee, 1e4 - poolState.poolManagerFeeBips, 1e4);
+        uint256 totalALMFee = Math.mulDiv(swapCache.effectiveFee, 1e4 - harness.poolManagerFeeBips(), 1e4);
 
         if (swapParams.isZeroToOne) {
-            assertEq(poolState.feePoolManager0, (args.poolManagerFees >> 128) + args.effectiveFee - totalALMFee);
+            assertEq(harness.feePoolManager0(), (args.poolManagerFees >> 128) + args.effectiveFee - totalALMFee);
         } else {
-            assertEq(poolState.feePoolManager1, (args.poolManagerFees << 128) + args.effectiveFee - totalALMFee);
+            assertEq(harness.feePoolManager1(), (args.poolManagerFees << 128) + args.effectiveFee - totalALMFee);
         }
 
         uint256 totalMetaALMSharedFee;
 
         for (uint256 i = 0; i < 3; i++) {
-            (, ALMPosition memory almPosition) = ALMPositions.getALM(alms[2 - i]);
+            (, ALMPosition memory almPosition) = harness.getALM(alms[2 - i]);
 
             assertEq(
                 swapParams.isZeroToOne ? almPosition.reserve1 : almPosition.reserve0,
@@ -343,6 +452,8 @@ contract GMTest is Test {
             if (!isParticipatingInSwap) {
                 almStates[i].isParticipatingInSwap = false;
                 continue;
+            } else {
+                almStates[i].isParticipatingInSwap = true;
             }
 
             if (i != 2) {
@@ -359,32 +470,55 @@ contract GMTest is Test {
             amountIns[i] = (amountInRemaining * percent) / 1e4;
             amountInRemaining -= amountIns[i];
         }
-
+        bytes memory errorData;
         for (uint256 i = 0; i < 3; i++) {
             if (!almStates[i].isParticipatingInSwap) {
                 continue;
             }
-
+            uint256 totalAmountOut;
             int24 tick = swapParams.isZeroToOne ? args.tickStart - 2 : args.tickStart + 2;
 
             uint256 amountOut = PriceTickMath.getTokenOutAmount(swapParams.isZeroToOne, amountIns[3 * i + 2], tick);
+            totalAmountOut += amountOut;
 
             ALMLiquidityQuote memory quote = ALMLiquidityQuote(amountOut, tick, new bytes(0));
 
             tick = swapParams.isZeroToOne ? tick + 1 : tick - 1;
             amountOut = PriceTickMath.getTokenOutAmount(swapParams.isZeroToOne, amountIns[3 * i + 1], tick);
+            totalAmountOut += amountOut;
 
             quote = ALMLiquidityQuote(amountOut, swapParams.isZeroToOne ? tick - 1 : tick + 1, abi.encode(quote));
 
             tick = swapParams.isZeroToOne ? tick + 1 : tick - 1;
             amountOut = PriceTickMath.getTokenOutAmount(swapParams.isZeroToOne, amountIns[3 * i], tick);
+            totalAmountOut += amountOut;
 
             quote = ALMLiquidityQuote(amountOut, swapParams.isZeroToOne ? tick - 1 : tick + 1, abi.encode(quote));
 
             almStates[i].latestLiquidityQuote = ALMCachedLiquidityQuote(0, 0, tick, abi.encode(quote));
+
+            (, ALMPosition memory position) = harness.getALM(alms[i]);
+
+            if (
+                totalAmountOut > (swapParams.isZeroToOne ? position.reserve1 : position.reserve0) &&
+                errorData.length == 0
+            ) {
+                errorData = abi.encodeWithSelector(GM.GM__verifyLiquidityQuote_quoteGTReserves.selector, alms[i]);
+            }
         }
 
-        (almStates, baseALMQuotes, swapCache) = this.requestForQuotes(almStates, baseALMQuotes, swapParams, swapCache);
+        if (errorData.length != 0) {
+            vm.expectRevert(errorData);
+            harness.requestForQuotes(almStates, baseALMQuotes, swapParams, swapCache);
+            return;
+        }
+
+        (almStates, baseALMQuotes, swapCache) = harness.requestForQuotes(
+            almStates,
+            baseALMQuotes,
+            swapParams,
+            swapCache
+        );
 
         if (swapParams.isZeroToOne) {
             assertGe(swapCache.spotPriceTick, swapParams.limitPriceTick);
@@ -393,13 +527,17 @@ contract GMTest is Test {
         }
 
         if (
-            !almStates[0].isParticipatingInSwap &&
-            !almStates[1].isParticipatingInSwap &&
-            !almStates[2].isParticipatingInSwap
+            (!almStates[0].isParticipatingInSwap &&
+                !almStates[1].isParticipatingInSwap &&
+                !almStates[2].isParticipatingInSwap) || (args.amountOutFilled == swapCache.amountOutFilled)
         ) {
-            assertEq(swapCache.spotPriceTick, args.tickStart);
+            assertEq(swapCache.spotPriceTick, args.tickStart, 'Tick should be same as start');
         } else {
-            assertEq(swapCache.spotPriceTick, swapParams.isZeroToOne ? args.tickStart - 2 : args.tickStart + 2);
+            assertEq(
+                swapCache.spotPriceTick,
+                swapParams.isZeroToOne ? args.tickStart - 2 : args.tickStart + 2,
+                'Incorrect tick'
+            );
         }
         uint256 totalAmountOut;
         for (uint256 i = 0; i < 3; i++) {
@@ -476,57 +614,7 @@ contract GMTest is Test {
             );
         }
 
-        this.updateALMPositionsOnSwapEnd(almStates, swapParams, swapCache);
-    }
-
-    /************************************************
-     *  External functions
-     ***********************************************/
-
-    function updateALMPositionsOnSwapEnd(
-        InternalSwapALMState[] memory almStates,
-        SwapParams calldata swapParams,
-        SwapCache memory swapCache
-    ) public {
-        GM.updateALMPositionsOnSwapEnd(almStates, swapParams, swapCache);
-    }
-
-    function requestForQuotes(
-        InternalSwapALMState[] memory almStates,
-        UnderlyingALMQuote[] memory baseALMQuotes,
-        SwapParams calldata swapParams,
-        SwapCache memory swapCache
-    ) public returns (InternalSwapALMState[] memory, UnderlyingALMQuote[] memory, SwapCache memory) {
-        GM.requestForQuotes(almStates, baseALMQuotes, swapParams, swapCache);
-        return (almStates, baseALMQuotes, swapCache);
-    }
-
-    function updatePoolState(
-        InternalSwapALMState[] memory almStates,
-        SwapParams calldata swapParams,
-        SwapCache memory swapCache
-    ) public returns (InternalSwapALMState[] memory, SwapCache memory) {
-        GM.updatePoolState(almStates, ALMPositions, poolState, swapParams, swapCache);
-        return (almStates, swapCache);
-    }
-
-    function setupSwap(
-        InternalSwapALMState[] memory almStates,
-        UnderlyingALMQuote[] memory baseALMQuotes,
-        SwapParams calldata swapParams,
-        SwapCache memory swapCache
-    ) public returns (InternalSwapALMState[] memory, UnderlyingALMQuote[] memory, SwapCache memory) {
-        GM.setupSwaps(almStates, baseALMQuotes, ALMPositions, swapParams, swapCache);
-
-        return (almStates, baseALMQuotes, swapCache);
-    }
-
-    // Called by mock alm during setup swap
-    function refreshReserves(uint256 amount0, uint256 amount1) external {
-        (, ALMPosition storage almPosition) = ALMPositions.getALM(msg.sender);
-
-        almPosition.reserve0 += amount0;
-        almPosition.reserve1 += amount1;
+        harness.updateALMPositionsOnSwapEnd(almStates, swapParams, swapCache);
     }
 
     /************************************************
@@ -555,7 +643,7 @@ contract GMTest is Test {
                 continue;
             }
 
-            (, ALMPosition memory almPosition) = ALMPositions.getALM(alms[i]);
+            (, ALMPosition memory almPosition) = harness.getALM(alms[i]);
 
             if (isRefreshReserves) {
                 almPosition.reserve0 += amount0;
@@ -613,10 +701,7 @@ contract GMTest is Test {
         uint256 almReserve1 = uint256((reserve1 << (85 * index)) >> 171);
 
         address alm = alms[index];
-        (, ALMPosition storage almPosition) = ALMPositions.getALM(alm);
-
-        almPosition.reserve0 = almReserve0;
-        almPosition.reserve1 = almReserve1;
+        harness.setReserves(alm, almReserve0, almReserve1);
     }
 
     function _setFees(uint256 index, uint256 fee0, uint256 fee1) internal {
@@ -624,10 +709,7 @@ contract GMTest is Test {
         uint256 almFee1 = uint256((fee1 << (80 * index)) >> 176);
 
         address alm = alms[index];
-        (, ALMPosition storage almPosition) = ALMPositions.getALM(alm);
-
-        almPosition.feeCumulative0 = almFee0;
-        almPosition.feeCumulative1 = almFee1;
+        harness.setFees(alm, almFee0, almFee1);
     }
 
     function _constructLiquidityQuote(
@@ -648,7 +730,7 @@ contract GMTest is Test {
         almStates = new InternalSwapALMState[](3);
 
         for (uint i; i < 3; i++) {
-            (, ALMPosition memory almPosition) = ALMPositions.getALM(alms[i]);
+            (, ALMPosition memory almPosition) = harness.getALM(alms[i]);
 
             almStates[i].almSlot0 = almPosition.slot0;
             almStates[i].almReserves = isZeroToOne
@@ -661,7 +743,7 @@ contract GMTest is Test {
         fees = new uint256[](3);
 
         for (uint256 i; i < 3; i++) {
-            (, ALMPosition memory almPosition) = ALMPositions.getALM(alms[i]);
+            (, ALMPosition memory almPosition) = harness.getALM(alms[i]);
 
             fees[i] = isZero ? almPosition.feeCumulative0 : almPosition.feeCumulative1;
         }
