@@ -253,7 +253,6 @@ contract GMTest is Test {
 
             (, ALMPosition memory almPosition) = harness.getALM(alms[i]);
 
-            console.log(almPosition.reserve0, almPosition.reserve1);
             swapParams.externalContext[i] = abi.encode(
                 isParticipatingInSwaps[i],
                 isRefreshReserves[i],
@@ -470,48 +469,41 @@ contract GMTest is Test {
             amountIns[i] = (amountInRemaining * percent) / 1e4;
             amountInRemaining -= amountIns[i];
         }
-        bytes memory errorData;
+
         for (uint256 i = 0; i < 3; i++) {
             if (!almStates[i].isParticipatingInSwap) {
                 continue;
             }
-            uint256 totalAmountOut;
             int24 tick = swapParams.isZeroToOne ? args.tickStart - 2 : args.tickStart + 2;
 
             uint256 amountOut = PriceTickMath.getTokenOutAmount(swapParams.isZeroToOne, amountIns[3 * i + 2], tick);
-            totalAmountOut += amountOut;
 
             ALMLiquidityQuote memory quote = ALMLiquidityQuote(amountOut, tick, new bytes(0));
 
             tick = swapParams.isZeroToOne ? tick + 1 : tick - 1;
             amountOut = PriceTickMath.getTokenOutAmount(swapParams.isZeroToOne, amountIns[3 * i + 1], tick);
-            totalAmountOut += amountOut;
 
             quote = ALMLiquidityQuote(amountOut, swapParams.isZeroToOne ? tick - 1 : tick + 1, abi.encode(quote));
 
             tick = swapParams.isZeroToOne ? tick + 1 : tick - 1;
             amountOut = PriceTickMath.getTokenOutAmount(swapParams.isZeroToOne, amountIns[3 * i], tick);
-            totalAmountOut += amountOut;
 
             quote = ALMLiquidityQuote(amountOut, swapParams.isZeroToOne ? tick - 1 : tick + 1, abi.encode(quote));
 
             almStates[i].latestLiquidityQuote = ALMCachedLiquidityQuote(0, 0, tick, abi.encode(quote));
+        }
 
-            (, ALMPosition memory position) = harness.getALM(alms[i]);
+        {
+            bytes memory errorData = _getRFQError(almStates, swapParams.isZeroToOne);
 
-            if (
-                totalAmountOut > (swapParams.isZeroToOne ? position.reserve1 : position.reserve0) &&
-                errorData.length == 0
-            ) {
-                errorData = abi.encodeWithSelector(GM.GM__verifyLiquidityQuote_quoteGTReserves.selector, alms[i]);
+            if (errorData.length != 0) {
+                vm.expectRevert(errorData);
+                harness.requestForQuotes(almStates, baseALMQuotes, swapParams, swapCache);
+                return;
             }
         }
 
-        if (errorData.length != 0) {
-            vm.expectRevert(errorData);
-            harness.requestForQuotes(almStates, baseALMQuotes, swapParams, swapCache);
-            return;
-        }
+        int24 expectedTick = _getRFQEndTick(almStates, swapCache, swapParams.isZeroToOne);
 
         (almStates, baseALMQuotes, swapCache) = harness.requestForQuotes(
             almStates,
@@ -526,23 +518,12 @@ contract GMTest is Test {
             assertLe(swapCache.spotPriceTick, swapParams.limitPriceTick);
         }
 
-        if (
-            (!almStates[0].isParticipatingInSwap &&
-                !almStates[1].isParticipatingInSwap &&
-                !almStates[2].isParticipatingInSwap) || (args.amountOutFilled == swapCache.amountOutFilled)
-        ) {
-            assertEq(swapCache.spotPriceTick, args.tickStart, 'Tick should be same as start');
-        } else {
-            assertEq(
-                swapCache.spotPriceTick,
-                swapParams.isZeroToOne ? args.tickStart - 2 : args.tickStart + 2,
-                'Incorrect tick'
-            );
-        }
+        assertEq(swapCache.spotPriceTick, expectedTick, 'Incorrect tick');
+
         uint256 totalAmountOut;
         for (uint256 i = 0; i < 3; i++) {
             if (!almStates[i].isParticipatingInSwap) {
-                assertEq(almStates[i].totalLiquidityProvided, 0);
+                assertEq(almStates[i].totalLiquidityProvided, 0, 'Non participating ALM attributed liquidity');
             } else {
                 uint256 amountOut = PriceTickMath.getTokenOutAmount(
                     swapParams.isZeroToOne,
@@ -560,12 +541,24 @@ contract GMTest is Test {
                         swapParams.isZeroToOne ? args.tickStart - 2 : args.tickStart + 2
                     );
 
-                assertEq(almStates[i].totalLiquidityProvided, amountOut);
+                if (i == 2 && !almStates[0].isParticipatingInSwap && !almStates[1].isParticipatingInSwap) {
+                    amountOut = PriceTickMath.getTokenOutAmount(
+                        swapParams.isZeroToOne,
+                        amountIns[3 * i],
+                        args.tickStart
+                    );
+                }
+
+                assertEq(almStates[i].totalLiquidityProvided, amountOut, 'ALM liquidity not accounted correctly');
                 totalAmountOut += amountOut;
             }
         }
 
-        assertEq(totalAmountOut, swapCache.amountOutFilled - args.amountOutFilled);
+        assertEq(
+            swapCache.amountOutFilled - args.amountOutFilled,
+            totalAmountOut,
+            'AmountOut not updated in swapcache'
+        );
     }
 
     function test_updateALMPositionsOnSwapEnd(uint8 flags) public {
@@ -620,6 +613,161 @@ contract GMTest is Test {
     /************************************************
      *  Internal functions
      ***********************************************/
+
+    function _getRFQEndTick(
+        InternalSwapALMState[] memory almStates,
+        SwapCache memory swapCache,
+        bool isZeroToOne
+    ) internal pure returns (int24) {
+        if (
+            !almStates[0].isParticipatingInSwap &&
+            !almStates[1].isParticipatingInSwap &&
+            !almStates[2].isParticipatingInSwap
+        ) {
+            return swapCache.spotPriceTick;
+        }
+
+        uint256 amountInRemaining = swapCache.amountInRemaining;
+        uint256 amountOutExpected = PriceTickMath.getTokenOutAmount(
+            isZeroToOne,
+            swapCache.amountInRemaining,
+            swapCache.spotPriceTick
+        );
+
+        for (uint256 i; i < 3; i++) {
+            if (!almStates[i].isParticipatingInSwap) {
+                continue;
+            }
+            ALMLiquidityQuote memory quote = abi.decode(
+                almStates[i].latestLiquidityQuote.internalContext,
+                (ALMLiquidityQuote)
+            );
+
+            amountInRemaining -= PriceTickMath.getTokenInAmount(
+                isZeroToOne,
+                quote.tokenOutAmount,
+                swapCache.spotPriceTick
+            );
+
+            if (amountOutExpected - quote.tokenOutAmount == 0) {
+                amountInRemaining = 0;
+            }
+
+            if (amountInRemaining == 0) {
+                return swapCache.spotPriceTick;
+            }
+        }
+
+        if (!almStates[0].isParticipatingInSwap && !almStates[1].isParticipatingInSwap) {
+            return swapCache.spotPriceTick;
+        }
+
+        amountOutExpected = PriceTickMath.getTokenOutAmount(
+            isZeroToOne,
+            amountInRemaining,
+            isZeroToOne ? swapCache.spotPriceTick - 1 : swapCache.spotPriceTick + 1
+        );
+
+        for (uint256 i; i < 3; i++) {
+            if (!almStates[i].isParticipatingInSwap) {
+                continue;
+            }
+
+            ALMLiquidityQuote memory quote = abi.decode(
+                almStates[i].latestLiquidityQuote.internalContext,
+                (ALMLiquidityQuote)
+            );
+            quote = abi.decode(quote.internalContext, (ALMLiquidityQuote));
+
+            amountInRemaining -= PriceTickMath.getTokenInAmount(
+                isZeroToOne,
+                quote.tokenOutAmount,
+                isZeroToOne ? swapCache.spotPriceTick - 1 : swapCache.spotPriceTick + 1
+            );
+
+            if (amountOutExpected - quote.tokenOutAmount == 0) {
+                amountInRemaining = 0;
+            }
+
+            if (amountInRemaining == 0) {
+                return isZeroToOne ? swapCache.spotPriceTick - 1 : swapCache.spotPriceTick + 1;
+            }
+        }
+
+        return isZeroToOne ? swapCache.spotPriceTick - 2 : swapCache.spotPriceTick + 2;
+    }
+
+    function _getRFQError(
+        InternalSwapALMState[] memory almStates,
+        bool isZeroToOne
+    ) internal view returns (bytes memory) {
+        uint256[] memory amountOutTotal = new uint256[](3);
+
+        for (uint256 i; i < 3; i++) {
+            if (!almStates[i].isParticipatingInSwap) {
+                continue;
+            }
+
+            ALMLiquidityQuote memory quote = abi.decode(
+                almStates[i].latestLiquidityQuote.internalContext,
+                (ALMLiquidityQuote)
+            );
+            amountOutTotal[i] += quote.tokenOutAmount;
+
+            (, ALMPosition memory position) = harness.getALM(alms[i]);
+
+            if (amountOutTotal[i] > (isZeroToOne ? position.reserve1 : position.reserve0)) {
+                return abi.encodeWithSelector(GM.GM__verifyLiquidityQuote_quoteGTReserves.selector, alms[i]);
+            }
+        }
+
+        if (!almStates[0].isParticipatingInSwap && !almStates[1].isParticipatingInSwap) {
+            return new bytes(0);
+        }
+
+        for (uint256 i; i < 3; i++) {
+            if (!almStates[i].isParticipatingInSwap) {
+                continue;
+            }
+
+            ALMLiquidityQuote memory quote = abi.decode(
+                almStates[i].latestLiquidityQuote.internalContext,
+                (ALMLiquidityQuote)
+            );
+            quote = abi.decode(quote.internalContext, (ALMLiquidityQuote));
+
+            amountOutTotal[i] += quote.tokenOutAmount;
+
+            (, ALMPosition memory position) = harness.getALM(alms[i]);
+
+            if (amountOutTotal[i] > (isZeroToOne ? position.reserve1 : position.reserve0)) {
+                return abi.encodeWithSelector(GM.GM__verifyLiquidityQuote_quoteGTReserves.selector, alms[i]);
+            }
+        }
+
+        for (uint256 i; i < 3; i++) {
+            if (!almStates[i].isParticipatingInSwap) {
+                continue;
+            }
+
+            ALMLiquidityQuote memory quote = abi.decode(
+                almStates[i].latestLiquidityQuote.internalContext,
+                (ALMLiquidityQuote)
+            );
+            quote = abi.decode(quote.internalContext, (ALMLiquidityQuote));
+            quote = abi.decode(quote.internalContext, (ALMLiquidityQuote));
+
+            amountOutTotal[i] += quote.tokenOutAmount;
+
+            (, ALMPosition memory position) = harness.getALM(alms[i]);
+
+            if (amountOutTotal[i] > (isZeroToOne ? position.reserve1 : position.reserve0)) {
+                return abi.encodeWithSelector(GM.GM__verifyLiquidityQuote_quoteGTReserves.selector, alms[i]);
+            }
+        }
+
+        return new bytes(0);
+    }
 
     function _getSetupSwapError(SwapParams memory swapParams, int24 priceTick) internal view returns (bytes memory) {
         uint256 amountInRemaining = swapParams.amountIn;
