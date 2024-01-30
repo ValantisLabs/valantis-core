@@ -208,7 +208,40 @@ contract GMTest is Test {
      *  Test functions
      ***********************************************/
 
-    function test_setupSwaps_concrete() public {}
+    // This covers line which are not touched by fuzz tests
+    // Case where setup swap returns before all alms are called
+    function test_setupSwaps_concrete() public {
+        SwapParams memory swapParams;
+
+        swapParams.isZeroToOne = true;
+
+        swapParams.limitPriceTick = -10;
+        swapParams.amountIn = 1e18;
+        swapParams.externalContext = new bytes[](3);
+        for (uint256 i; i < 3; i++) {
+            harness.setReserves(alms[i], 10e18, 10e18);
+
+            swapParams.externalContext[i] = abi.encode(true, false, 0, 0, ALMLiquidityQuote(1e18, 0, new bytes(0)));
+        }
+
+        SwapCache memory swapCache;
+        swapCache.isMetaALMPool = true;
+        swapCache.amountInMinusFee = 1e18;
+        swapCache.amountInRemaining = 1e18;
+        swapCache.numBaseALMs = 2;
+
+        UnderlyingALMQuote[] memory baseALMQuotes = new UnderlyingALMQuote[](3);
+
+        InternalSwapALMState[] memory almStates = _getInitialInternalALMStates(swapParams.isZeroToOne);
+
+        (almStates, baseALMQuotes, swapCache) = harness.setupSwap(almStates, baseALMQuotes, swapParams, swapCache);
+
+        assertEq(almStates[0].totalLiquidityProvided, 1e18);
+        assertEq(almStates[1].totalLiquidityProvided, 0);
+        assertEq(almStates[2].totalLiquidityProvided, 0);
+
+        assertEq(swapCache.spotPriceTick, 0);
+    }
 
     function test_setupSwaps(SetupSwapFuzzParams memory args) public {
         // tick will be same throug out all alm calls in setup swap

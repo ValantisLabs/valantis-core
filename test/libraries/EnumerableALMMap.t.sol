@@ -115,6 +115,18 @@ contract EnumerableALMMapTest is Test {
             vm.expectRevert(EnumerableALMMap.EnumerableALMMap__invalidALMAddress.selector);
             harness.add(ALMPosition(Slot0(false, true, true, 0, address(uint160(0))), 0, 0, 0, 0));
         }
+
+        uint256 num = harness.length();
+        while (true) {
+            if (harness.length() == 256) {
+                vm.expectRevert(EnumerableALMMap.EnumerableALMMap__addALMPosition.selector);
+                harness.add(ALMPosition(Slot0(false, true, true, 0, address(uint160(1 + num))), 0, 0, 0, num));
+                break;
+            }
+
+            harness.add(ALMPosition(Slot0(false, true, true, 0, address(uint160(1 + num))), 0, 0, 0, num));
+            num++;
+        }
     }
 
     function test_remove(uint256 numBaseALM, uint256 numMetaALM, uint256 removeIndex) public {
@@ -162,6 +174,10 @@ contract EnumerableALMMapTest is Test {
 
         vm.expectRevert(EnumerableALMMap.EnumerableALMMap__removeALMPosition.selector);
         harness.remove(address(uint160(removeIndex + 1)));
+
+        // Can not add removed ALM again
+        vm.expectRevert(EnumerableALMMap.EnumerableALMMap__addALMPosition.selector);
+        harness.add(ALMPosition(Slot0(false, true, true, 0, address(uint160(removeIndex + 1))), 0, 0, 0, removeIndex));
     }
 
     function test_isActive(uint256 numBaseALM, uint256 numMetaALM, uint256 setIndex) public {
@@ -319,6 +335,20 @@ contract EnumerableALMMapTest is Test {
         assertEq(position.reserve1, 25);
         assertEq(position.feeCumulative0, 5);
         assertEq(position.feeCumulative1, 0);
+
+        // reserves should be same even if alm is removed
+
+        harness.remove(address(uint160(1)));
+
+        ALMReserves memory almReserves = harness.getALMReserves(true, address(uint160(1)));
+
+        assertEq(almReserves.tokenInReserves, 30 + 5);
+        assertEq(almReserves.tokenOutReserves, 25);
+
+        almReserves = harness.getALMReserves(false, address(uint160(1)));
+
+        assertEq(almReserves.tokenInReserves, 25);
+        assertEq(almReserves.tokenOutReserves, 30 + 5);
     }
 
     /************************************************
