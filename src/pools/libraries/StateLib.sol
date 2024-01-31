@@ -61,6 +61,7 @@ library StateLib {
     error StateLib__setPoolState_onlyPoolManager();
     error StateLib__setUniversalOracle_universalOracleAlreadySet();
     error StateLib__setSwapFeeModule_invalidSwapFeeModule();
+    error StateLib__setSwapFeeModule_timelock();
 
     /************************************************
      *  EXTERNAL FUNCTIONS
@@ -165,7 +166,14 @@ library StateLib {
 
         // Update Swap Fee Module
         if (_state.swapFeeModule != _newState.swapFeeModule) {
+            // Swap Fee Module cannot be updated too frequently (at most once every 3 days)
+            if (block.timestamp < _state.swapFeeModuleUpdateTimestamp) {
+                revert StateLib__setSwapFeeModule_timelock();
+            }
+
             _state.swapFeeModule = _newState.swapFeeModule;
+            // Update timestamp at which the next Swap Fee Module update can occur
+            _state.swapFeeModuleUpdateTimestamp = block.timestamp + 3 days;
 
             emit SwapFeeModuleSet(_newState.swapFeeModule);
         }

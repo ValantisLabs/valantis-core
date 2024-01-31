@@ -59,6 +59,7 @@ contract StateLibTest is Base {
             args.feeProtocol1,
             args.feePoolManager0,
             args.feePoolManager1,
+            block.timestamp,
             ZERO_ADDRESS,
             ZERO_ADDRESS,
             ZERO_ADDRESS,

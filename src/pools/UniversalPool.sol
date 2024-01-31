@@ -187,6 +187,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         protocolFactory = _protocolFactory;
 
         _state.poolManager = _poolManager;
+        _state.swapFeeModuleUpdateTimestamp = block.timestamp + 3 days;
 
         // Default swap fees cannot be set greater than 10_000 bips
         defaultSwapFeeBips = _defaultSwapFeeBips <= MAX_SWAP_FEE_BIPS ? _defaultSwapFeeBips : MAX_SWAP_FEE_BIPS;
@@ -729,9 +730,6 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
                 }
 
                 almStates[i].almSlot0 = _ALMPositions.getSlot0(almIndex);
-                if (swapCache.isMetaALMPool) {
-                    baseALMQuotes[i].almAddress = almStates[i].almSlot0.almAddress;
-                }
 
                 // Set all new indices to true
                 indexFlags[almIndex] = true;

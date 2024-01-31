@@ -122,6 +122,7 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         defaultState.universalOracle = makeAddr('ORACLE');
         defaultState.poolManagerFeeBips = 100;
 
+        vm.warp(3 days + 1);
         vm.prank(POOL_MANAGER);
         pool.initializeTick(tick, defaultState);
 
@@ -237,6 +238,11 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         defaultState.poolManagerFeeBips = 100;
         uint256 snapshot = vm.snapshot();
         vm.prank(POOL_MANAGER);
+        vm.expectRevert(StateLib.StateLib__setSwapFeeModule_timelock.selector);
+        pool.setPoolState(defaultState);
+
+        vm.warp(3 days + 1);
+        vm.prank(POOL_MANAGER);
         pool.setPoolState(defaultState);
 
         PoolState memory poolState = pool.state();
@@ -246,6 +252,7 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         assertEq(poolState.poolManager, defaultState.poolManager);
 
         vm.revertTo(snapshot);
+        vm.warp(3 days + 1);
 
         defaultState.poolManager = ZERO_ADDRESS;
         _setPoolManagerFees(10e18, 20e18);
@@ -649,7 +656,7 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         SwapParams memory swapParams;
         swapParams.isZeroToOne = true;
         swapParams.limitPriceTick = -2;
-        swapParams.deadline = block.timestamp;
+        swapParams.deadline = block.timestamp + 3 days + 1;
         swapParams.amountIn = 100e18;
         swapParams.recipient = RECIPIENT;
         swapParams.externalContext = new bytes[](1);
@@ -668,6 +675,7 @@ contract UniversalPoolConcrete is UniversalPoolBase {
 
         poolState.swapFeeModule = address(this);
 
+        vm.warp(3 days + 1);
         vm.prank(POOL_MANAGER);
         pool.setPoolState(poolState);
 

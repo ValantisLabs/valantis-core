@@ -23,7 +23,6 @@ struct ALMPosition {
 
 struct UnderlyingALMQuote {
     bool isValidQuote;
-    address almAddress;
     uint256 tokenOutAmount;
 }
 
@@ -81,6 +80,7 @@ struct PoolState {
     uint256 feeProtocol1;
     uint256 feePoolManager0;
     uint256 feePoolManager1;
+    uint256 swapFeeModuleUpdateTimestamp;
     address swapFeeModule;
     address poolManager;
     address universalOracle;

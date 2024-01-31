@@ -215,7 +215,7 @@ contract UniversalPoolBase is UniversalPoolDeployer, Base {
     }
 
     function _defaultPoolState() internal view returns (PoolState memory poolState) {
-        poolState = PoolState(0, 0, 0, 0, 0, ZERO_ADDRESS, POOL_MANAGER, ZERO_ADDRESS, ZERO_ADDRESS);
+        poolState = PoolState(0, 0, 0, 0, 0, block.timestamp, ZERO_ADDRESS, POOL_MANAGER, ZERO_ADDRESS, ZERO_ADDRESS);
     }
 
     // overwrite storage value helper functions

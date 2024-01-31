@@ -499,8 +499,7 @@ library GM {
         for (uint256 almNum; almNum < swapCache.numBaseALMs; ) {
             // Reset baseALMQuote array, since execution must be at the end of the round.
             if (swapCache.isMetaALMPool) {
-                baseALMQuotes[almNum].tokenOutAmount = 0;
-                baseALMQuotes[almNum].isValidQuote = false;
+                baseALMQuotes[almNum] = UnderlyingALMQuote(false, 0);
             }
 
             if (almStates[almNum].isParticipatingInSwap) {
