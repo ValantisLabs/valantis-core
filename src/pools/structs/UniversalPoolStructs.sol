@@ -23,7 +23,6 @@ struct ALMPosition {
 
 struct UnderlyingALMQuote {
     bool isValidQuote;
-    address almAddress;
     uint256 tokenOutAmount;
 }
 

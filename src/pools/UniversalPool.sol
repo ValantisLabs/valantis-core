@@ -82,6 +82,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
     error UniversalPool__swap_invalidLimitPriceTick();
     error UniversalPool__swap_noActiveALMPositions();
     error UniversalPool__swap_zeroAddressRecipient();
+    error UniversalPool__swap_zeroAmountOut();
     error UniversalPool__setGauge_gaugeAlreadySet();
     error UniversalPool__setGauge_invalidAddress();
 
@@ -578,6 +579,10 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         amountInUsed = (swapCache.amountInMinusFee - swapCache.amountInRemaining) + swapCache.effectiveFee;
         amountOut = swapCache.amountOutFilled;
 
+        if (amountInUsed > 0 && amountOut == 0) {
+            revert UniversalPool__swap_zeroAmountOut();
+        }
+
         // Claim amountInFilled + effectiveFee from sender
         if (amountInUsed > 0) {
             IERC20 tokenInInterface = _swapParams.isZeroToOne ? _token0 : _token1;
@@ -724,9 +729,6 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
                 }
 
                 almStates[i].almSlot0 = _ALMPositions.getSlot0(almIndex);
-                if (swapCache.isMetaALMPool) {
-                    baseALMQuotes[i].almAddress = almStates[i].almSlot0.almAddress;
-                }
 
                 // Set all new indices to true
                 indexFlags[almIndex] = true;
