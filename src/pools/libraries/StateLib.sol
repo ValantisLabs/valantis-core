@@ -30,6 +30,11 @@ library StateLib {
      ***********************************************/
 
     /**
+        @notice Maximum BIPS for calculation of fee using bips 
+     */
+    uint256 private constant MAX_SWAP_FEE_BIPS = 1e4;
+
+    /**
         @notice Minimum fee for LPs is 50% of swap fee,
                 and 50% maximum goes to the protocol. 
      */
@@ -77,15 +82,15 @@ library StateLib {
         uint256 _feeProtocol1Bips
     ) external returns (uint256 feePoolManager0Claimed, uint256 feePoolManager1Claimed) {
         // Underflow prevention
-        if (_feeProtocol0Bips > 1e4 || _feeProtocol1Bips > 1e4) {
+        if (_feeProtocol0Bips > MAX_SWAP_FEE_BIPS || _feeProtocol1Bips > MAX_SWAP_FEE_BIPS) {
             revert StateLib__claimPoolManagerFees_invalidProtocolFee();
         }
 
         uint256 feePoolManager0 = _state.feePoolManager0;
         uint256 feePoolManager1 = _state.feePoolManager1;
 
-        uint256 feeProtocol0 = Math.mulDiv(_feeProtocol0Bips, feePoolManager0, 1e4);
-        uint256 feeProtocol1 = Math.mulDiv(_feeProtocol1Bips, feePoolManager1, 1e4);
+        uint256 feeProtocol0 = Math.mulDiv(_feeProtocol0Bips, feePoolManager0, MAX_SWAP_FEE_BIPS);
+        uint256 feeProtocol1 = Math.mulDiv(_feeProtocol1Bips, feePoolManager1, MAX_SWAP_FEE_BIPS);
 
         feePoolManager0Claimed = feePoolManager0 - feeProtocol0;
         feePoolManager1Claimed = feePoolManager1 - feeProtocol1;

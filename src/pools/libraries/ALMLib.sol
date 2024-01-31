@@ -89,28 +89,23 @@ library ALMLib {
     ) external {
         // We also allow inactive ALM Positions to withdraw liquidity + fees earned
         // We also allow ALMs removed by the pool manager to withdraw funds.
-        (, ALMPosition memory almPositionCache) = _ALMPositions.getALM(msg.sender);
+        (, ALMPosition storage almPosition) = _ALMPositions.getALM(msg.sender);
 
-        if (_amount0 > almPositionCache.reserve0 || _amount1 > almPositionCache.reserve1) {
+        if (_amount0 > almPosition.reserve0 || _amount1 > almPosition.reserve1) {
             revert ALMLib__withdrawLiquidity_insufficientReserves();
         }
-
-        (, ALMPosition storage almPosition) = _ALMPositions.getALM(msg.sender);
 
         almPosition.reserve0 -= _amount0;
         almPosition.reserve1 -= _amount1;
 
-        uint256 totalAmount0 = _amount0;
-        uint256 totalAmount1 = _amount1;
-
-        if (totalAmount0 > 0) {
-            _token0.safeTransfer(_recipient, totalAmount0);
+        if (_amount0 > 0) {
+            _token0.safeTransfer(_recipient, _amount0);
         }
 
-        if (totalAmount1 > 0) {
-            _token1.safeTransfer(_recipient, totalAmount1);
+        if (_amount1 > 0) {
+            _token1.safeTransfer(_recipient, _amount1);
         }
 
-        emit WithdrawLiquidity(msg.sender, _recipient, totalAmount0, totalAmount1);
+        emit WithdrawLiquidity(msg.sender, _recipient, _amount0, _amount1);
     }
 }

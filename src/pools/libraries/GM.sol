@@ -41,6 +41,15 @@ library GM {
     error GM__verifyLiquidityQuote_invalidNLPT(address);
 
     /************************************************
+     *  CONSTANTS
+     ***********************************************/
+
+    /**
+        @notice Maximum BIPS for calculation of fee using bips 
+     */
+    uint256 private constant MAX_SWAP_FEE_BIPS = 1e4;
+
+    /************************************************
      *  INTERNAL FUNCTIONS
      ***********************************************/
     /**
@@ -237,7 +246,11 @@ library GM {
         SwapCache memory swapCache
     ) internal {
         // Calculate ALM Fee
-        uint256 totalALMFee = Math.mulDiv(swapCache.effectiveFee, 1e4 - state.poolManagerFeeBips, 1e4);
+        uint256 totalALMFee = Math.mulDiv(
+            swapCache.effectiveFee,
+            MAX_SWAP_FEE_BIPS - state.poolManagerFeeBips,
+            MAX_SWAP_FEE_BIPS
+        );
         uint256 totalMetaALMSharedFee;
 
         // Set Pool Manager Fee
@@ -263,7 +276,7 @@ library GM {
                         swapCache.amountOutFilled
                     );
 
-                    uint256 sharedFee = Math.mulDiv(fee, almStates[i].almSlot0.metaALMFeeShare, 1e4);
+                    uint256 sharedFee = Math.mulDiv(fee, almStates[i].almSlot0.metaALMFeeShare, MAX_SWAP_FEE_BIPS);
                     almFeeEarned = fee - sharedFee;
                     totalMetaALMSharedFee += sharedFee;
                 } else {
