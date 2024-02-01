@@ -215,10 +215,15 @@ contract UniversalPoolBase is UniversalPoolDeployer, Base {
     }
 
     function _defaultPoolState() internal view returns (PoolState memory poolState) {
-        poolState = PoolState(0, 0, 0, 0, 0, ZERO_ADDRESS, POOL_MANAGER, ZERO_ADDRESS, ZERO_ADDRESS);
+        poolState = PoolState(0, 0, 0, 0, 0, block.timestamp, ZERO_ADDRESS, POOL_MANAGER, ZERO_ADDRESS, ZERO_ADDRESS);
     }
 
     // overwrite storage value helper functions
+
+    function _setPoolManagerFeeBips(uint256 feeBips) internal {
+        vm.store(address(pool), bytes32(uint256(4)), bytes32(feeBips));
+    }
+
     function _setProtocolFees(uint256 fee0, uint256 fee1) internal {
         vm.store(address(pool), bytes32(uint256(5)), bytes32(fee0));
         vm.store(address(pool), bytes32(uint256(6)), bytes32(fee1));

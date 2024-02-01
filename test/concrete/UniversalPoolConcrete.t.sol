@@ -122,6 +122,7 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         defaultState.universalOracle = makeAddr('ORACLE');
         defaultState.poolManagerFeeBips = 100;
 
+        vm.warp(3 days + 1);
         vm.prank(POOL_MANAGER);
         pool.initializeTick(tick, defaultState);
 
@@ -235,6 +236,7 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         defaultState.universalOracle = makeAddr('ORACLE');
         defaultState.poolManager = _randomUser();
         defaultState.poolManagerFeeBips = 100;
+        uint256 snapshot = vm.snapshot();
 
         vm.prank(POOL_MANAGER);
         pool.setPoolState(defaultState);
@@ -244,6 +246,34 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         assertEq(poolState.universalOracle, defaultState.universalOracle);
         assertEq(poolState.poolManagerFeeBips, defaultState.poolManagerFeeBips);
         assertEq(poolState.poolManager, defaultState.poolManager);
+
+        defaultState.swapFeeModule = makeAddr('NEW_SWAP_FEE_MODULE');
+        vm.prank(defaultState.poolManager);
+        vm.expectRevert(StateLib.StateLib__setSwapFeeModule_timelock.selector);
+        pool.setPoolState(defaultState);
+
+        vm.warp(3 days + 1);
+
+        defaultState.swapFeeModule = makeAddr('NEW_SWAP_FEE_MODULE');
+        vm.prank(defaultState.poolManager);
+        pool.setPoolState(defaultState);
+
+        vm.revertTo(snapshot);
+
+        _setPoolManagerFeeBips(100);
+        defaultState.poolManager = ZERO_ADDRESS;
+        _setPoolManagerFees(10e18, 20e18);
+
+        _setupBalanceForUser(address(pool), address(token0), 10e18);
+        _setupBalanceForUser(address(pool), address(token1), 20e18);
+        vm.prank(POOL_MANAGER);
+
+        vm.expectCall(address(token0), abi.encodeWithSelector(IERC20.transfer.selector, POOL_MANAGER, 10e18));
+        vm.expectCall(address(token1), abi.encodeWithSelector(IERC20.transfer.selector, POOL_MANAGER, 20e18));
+
+        pool.setPoolState(defaultState);
+
+        assertEq(pool.state().poolManagerFeeBips, 0);
     }
 
     function test_claimPoolManagerFees() public {
@@ -524,7 +554,7 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         vm.expectRevert(UniversalPool.UniversalPool__swap_invalidLimitPriceTick.selector);
         pool.swap(swapParams);
 
-        swapParams.limitPriceTick = 2;
+        swapParams.limitPriceTick = PriceTickMath.MAX_PRICE_TICK;
 
         // check revert on no active alm
         vm.expectRevert(UniversalPool.UniversalPool__swap_noActiveALMPositions.selector);
@@ -566,6 +596,21 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         pool.swap(swapParams);
 
         swapParams.amountOutMin = 0;
+
+        quote = ALMLiquidityQuote(0, 268711, new bytes(0));
+        quote = ALMLiquidityQuote(0, 268711, abi.encode(quote));
+
+        swapParams.amountIn = 1;
+        swapParams.externalContext[0] = abi.encode(true, true, 50e18, 0, quote);
+
+        vm.expectRevert(UniversalPool.UniversalPool__swap_zeroAmountOut.selector);
+        pool.swap(swapParams);
+
+        quote = ALMLiquidityQuote(10e18, 1, new bytes(0));
+        quote = ALMLiquidityQuote(30e18, 1, abi.encode(quote));
+        swapParams.externalContext[0] = abi.encode(true, true, 50e18, 0, quote);
+
+        swapParams.amountIn = 100e18;
 
         uint256 amountInExpected = 30e18 + PriceTickMath.getTokenInAmount(false, 10e18, 1);
 
@@ -620,7 +665,7 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         SwapParams memory swapParams;
         swapParams.isZeroToOne = true;
         swapParams.limitPriceTick = -2;
-        swapParams.deadline = block.timestamp;
+        swapParams.deadline = block.timestamp + 3 days + 1;
         swapParams.amountIn = 100e18;
         swapParams.recipient = RECIPIENT;
         swapParams.externalContext = new bytes[](1);

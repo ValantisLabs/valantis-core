@@ -136,14 +136,14 @@ contract PriceTickMathTest is Test {
         }
     }
 
-    function test_tokenInOutConversion(bool isZeroToOne, uint256 amount, int24 tick) public {
+    function test_tokenInOutConversion(bool isZeroToOne, uint256 amount, int24 tick) public view {
         tick = int24(bound(tick, PriceTickMath.MIN_PRICE_TICK, PriceTickMath.MAX_PRICE_TICK));
         amount = bound(amount, 1, 1e26);
 
         uint256 amountOut = harness.getTokenOutAmount(isZeroToOne, amount, tick);
 
         uint256 amountIn = harness.getTokenInAmount(isZeroToOne, amountOut, tick);
-
+        console.log(amountIn);
         // assertGe(amountIn, amount);
     }
 }

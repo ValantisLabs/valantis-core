@@ -82,6 +82,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
     error UniversalPool__swap_invalidLimitPriceTick();
     error UniversalPool__swap_noActiveALMPositions();
     error UniversalPool__swap_zeroAddressRecipient();
+    error UniversalPool__swap_zeroAmountOut();
     error UniversalPool__setGauge_gaugeAlreadySet();
     error UniversalPool__setGauge_invalidAddress();
 
@@ -186,6 +187,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         protocolFactory = _protocolFactory;
 
         _state.poolManager = _poolManager;
+        _state.swapFeeModuleUpdateTimestamp = block.timestamp;
 
         // Default swap fees cannot be set greater than 10_000 bips
         defaultSwapFeeBips = _defaultSwapFeeBips <= MAX_SWAP_FEE_BIPS ? _defaultSwapFeeBips : MAX_SWAP_FEE_BIPS;
@@ -373,6 +375,10 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         @dev Can only be set by `poolManager`. Checks are inside the StateLib.
      */
     function setPoolState(PoolState memory _newState) external override nonReentrantGlobal onlyPoolManager {
+        if (_newState.poolManager == address(0)) {
+            _state.claimPoolManagerFees(_token0, _token1, 0, 0);
+            _newState.poolManagerFeeBips = 0;
+        }
         _state.setPoolState(_newState);
     }
 
@@ -490,7 +496,8 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
             * limitPriceTick Tick corresponding to limit price chosen by the user.
             * recipient Address of output token recipient.
             * amountIn Input amount to swap.
-            * amountOutMin Minimum amount of tokenOut user is willing to receive for amountIn.
+            * amountOut Min Minimum amount of tokenOut user is willing to receive for amountIn.
+            * deadline Block timestamp after which the swap is no longer valid.
             * swapCallbackContext Context for swap callback.
             * swapFeeModuleContext Context for swap fee module.
             * almOrdering Ordering of ALMs during setupSwap.
@@ -530,7 +537,11 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         }
 
         // Get initial swap amounts
-        swapCache.amountInMinusFee = Math.mulDiv(_swapParams.amountIn, 1e4, 1e4 + swapFeeModuleData.feeInBips);
+        swapCache.amountInMinusFee = Math.mulDiv(
+            _swapParams.amountIn,
+            MAX_SWAP_FEE_BIPS,
+            MAX_SWAP_FEE_BIPS + swapFeeModuleData.feeInBips
+        );
         swapCache.amountInRemaining = swapCache.amountInMinusFee;
         swapCache.feeInBips = swapFeeModuleData.feeInBips;
 
@@ -562,13 +573,17 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         swapCache.effectiveFee = Math.mulDiv(
             (swapCache.amountInMinusFee - swapCache.amountInRemaining),
             swapFeeModuleData.feeInBips,
-            1e4
+            MAX_SWAP_FEE_BIPS
         );
 
         almStates.updatePoolState(_ALMPositions, _state, _swapParams, swapCache);
 
         amountInUsed = (swapCache.amountInMinusFee - swapCache.amountInRemaining) + swapCache.effectiveFee;
         amountOut = swapCache.amountOutFilled;
+
+        if (amountInUsed > 0 && amountOut == 0) {
+            revert UniversalPool__swap_zeroAmountOut();
+        }
 
         // Claim amountInFilled + effectiveFee from sender
         if (amountInUsed > 0) {
@@ -595,10 +610,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         }
 
         // Update state for Swap fee module
-        if (
-            swapCache.swapFeeModule != address(0) &&
-            keccak256(swapFeeModuleData.internalContext) != keccak256(new bytes(0))
-        ) {
+        if (swapFeeModuleData.internalContext.length != 0) {
             ISwapFeeModule(swapCache.swapFeeModule).callbackOnSwapEnd(
                 swapCache.effectiveFee,
                 swapCache.spotPriceTick,
