@@ -731,6 +731,9 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
                 }
 
                 almStates[i].almSlot0 = _ALMPositions.getSlot0(almIndex);
+                if (swapCache.isMetaALMPool) {
+                    baseALMQuotes[i].almAddress = almStates[i].almSlot0.almAddress;
+                }
 
                 // Set all new indices to true
                 indexFlags[almIndex] = true;
