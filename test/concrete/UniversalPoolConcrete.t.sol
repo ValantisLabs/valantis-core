@@ -237,11 +237,7 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         defaultState.poolManager = _randomUser();
         defaultState.poolManagerFeeBips = 100;
         uint256 snapshot = vm.snapshot();
-        vm.prank(POOL_MANAGER);
-        vm.expectRevert(StateLib.StateLib__setSwapFeeModule_timelock.selector);
-        pool.setPoolState(defaultState);
 
-        vm.warp(3 days + 1);
         vm.prank(POOL_MANAGER);
         pool.setPoolState(defaultState);
 
@@ -251,9 +247,20 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         assertEq(poolState.poolManagerFeeBips, defaultState.poolManagerFeeBips);
         assertEq(poolState.poolManager, defaultState.poolManager);
 
-        vm.revertTo(snapshot);
+        defaultState.swapFeeModule = makeAddr('NEW_SWAP_FEE_MODULE');
+        vm.prank(defaultState.poolManager);
+        vm.expectRevert(StateLib.StateLib__setSwapFeeModule_timelock.selector);
+        pool.setPoolState(defaultState);
+
         vm.warp(3 days + 1);
 
+        defaultState.swapFeeModule = makeAddr('NEW_SWAP_FEE_MODULE');
+        vm.prank(defaultState.poolManager);
+        pool.setPoolState(defaultState);
+
+        vm.revertTo(snapshot);
+
+        _setPoolManagerFeeBips(100);
         defaultState.poolManager = ZERO_ADDRESS;
         _setPoolManagerFees(10e18, 20e18);
 
@@ -265,6 +272,8 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         vm.expectCall(address(token1), abi.encodeWithSelector(IERC20.transfer.selector, POOL_MANAGER, 20e18));
 
         pool.setPoolState(defaultState);
+
+        assertEq(pool.state().poolManagerFeeBips, 0);
     }
 
     function test_claimPoolManagerFees() public {
@@ -675,7 +684,6 @@ contract UniversalPoolConcrete is UniversalPoolBase {
 
         poolState.swapFeeModule = address(this);
 
-        vm.warp(3 days + 1);
         vm.prank(POOL_MANAGER);
         pool.setPoolState(poolState);
 

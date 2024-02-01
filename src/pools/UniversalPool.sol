@@ -187,7 +187,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         protocolFactory = _protocolFactory;
 
         _state.poolManager = _poolManager;
-        _state.swapFeeModuleUpdateTimestamp = block.timestamp + 3 days;
+        _state.swapFeeModuleUpdateTimestamp = block.timestamp;
 
         // Default swap fees cannot be set greater than 10_000 bips
         defaultSwapFeeBips = _defaultSwapFeeBips <= MAX_SWAP_FEE_BIPS ? _defaultSwapFeeBips : MAX_SWAP_FEE_BIPS;
@@ -375,10 +375,11 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         @dev Can only be set by `poolManager`. Checks are inside the StateLib.
      */
     function setPoolState(PoolState memory _newState) external override nonReentrantGlobal onlyPoolManager {
-        _state.setPoolState(_newState);
         if (_newState.poolManager == address(0)) {
             _state.claimPoolManagerFees(_token0, _token1, 0, 0);
+            _newState.poolManagerFeeBips = 0;
         }
+        _state.setPoolState(_newState);
     }
 
     /**

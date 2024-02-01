@@ -219,6 +219,11 @@ contract UniversalPoolBase is UniversalPoolDeployer, Base {
     }
 
     // overwrite storage value helper functions
+
+    function _setPoolManagerFeeBips(uint256 feeBips) internal {
+        vm.store(address(pool), bytes32(uint256(4)), bytes32(feeBips));
+    }
+
     function _setProtocolFees(uint256 fee0, uint256 fee1) internal {
         vm.store(address(pool), bytes32(uint256(5)), bytes32(fee0));
         vm.store(address(pool), bytes32(uint256(6)), bytes32(fee1));
