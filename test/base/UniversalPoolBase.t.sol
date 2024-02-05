@@ -220,6 +220,18 @@ contract UniversalPoolBase is UniversalPoolDeployer, Base {
 
     // overwrite storage value helper functions
 
+    function _setPriceTick(int24 tick) internal {
+        vm.store(address(pool), bytes32(uint256(3)), bytes32(uint256(uint24(tick))));
+    }
+
+    function _setALMReserves(uint256 almNum, uint256 reserve0, uint256 reserve1) internal {
+        bytes32 reserve0Slot = bytes32(uint256(keccak256(abi.encodePacked(uint256(15)))) + 5 * almNum + 1);
+        bytes32 reserve1Slot = bytes32(uint256(keccak256(abi.encodePacked(uint256(15)))) + 5 * almNum + 2);
+
+        vm.store(address(pool), reserve0Slot, bytes32(reserve0));
+        vm.store(address(pool), reserve1Slot, bytes32(reserve1));
+    }
+
     function _setPoolManagerFeeBips(uint256 feeBips) internal {
         vm.store(address(pool), bytes32(uint256(4)), bytes32(feeBips));
     }
