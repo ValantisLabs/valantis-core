@@ -241,6 +241,53 @@ contract GMTest is Test {
         assertEq(almStates[2].totalLiquidityProvided, 0);
 
         assertEq(swapCache.spotPriceTick, 0);
+
+        // Check amountIn scaled to amountInRemaining during rounding
+        // with these values, amountIn calculated from amountOut is more than amountIn
+
+        uint256 amountIn = 2330;
+        int24 tick = 271312;
+        swapParams.isZeroToOne = true;
+        swapParams.limitPriceTick = tick;
+
+        swapCache.isMetaALMPool = true;
+        swapCache.amountInMinusFee = amountIn;
+        swapCache.amountInRemaining = amountIn;
+        swapCache.numBaseALMs = 2;
+        swapCache.spotPriceTick = tick;
+        swapCache.spotPriceTickStart = tick;
+
+        for (uint256 i; i < 3; i++) {
+            harness.setReserves(alms[i], 100e26, 100e26);
+            if (i == 2) {
+                swapParams.externalContext[i] = abi.encode(
+                    true,
+                    false,
+                    0,
+                    0,
+                    ALMLiquidityQuote(470517744474340, tick, new bytes(0))
+                );
+            } else {
+                swapParams.externalContext[i] = abi.encode(
+                    true,
+                    false,
+                    0,
+                    0,
+                    ALMLiquidityQuote(470517744474340, tick, new bytes(0))
+                );
+            }
+        }
+
+        baseALMQuotes = new UnderlyingALMQuote[](3);
+        almStates = _getInitialInternalALMStates(swapParams.isZeroToOne);
+
+        (almStates, baseALMQuotes, swapCache) = harness.setupSwap(almStates, baseALMQuotes, swapParams, swapCache);
+
+        assertEq(almStates[0].totalLiquidityProvided, 470517744474340);
+        assertEq(almStates[1].totalLiquidityProvided, 470517744474340);
+        assertEq(almStates[2].totalLiquidityProvided, 470517744474340);
+
+        assertEq(swapCache.spotPriceTick, tick);
     }
 
     function test_setupSwaps(SetupSwapFuzzParams memory args) public {
