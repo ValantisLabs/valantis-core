@@ -112,4 +112,8 @@ contract MockUniversalALM is IUniversalALM {
         IERC20(universalPool.token0()).safeTransferFrom(user, msg.sender, _amount0);
         IERC20(universalPool.token1()).safeTransferFrom(user, msg.sender, _amount1);
     }
+
+    function withdrawLiquidity(uint256 amount0, uint256 amount1, address recepient) external {
+        IUniversalPool(pool).withdrawLiquidity(amount0, amount1, recepient);
+    }
 }
