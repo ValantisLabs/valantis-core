@@ -67,8 +67,16 @@ describe('Sovereign Pool', async () => {
 
     const usdt_whale = await ethers.getImpersonatedSigner(USDT_WHALE_ADDR);
     const steth_whale = await ethers.getImpersonatedSigner(stETH_WHALE_ADDR);
+
+    /// Prefill whale's addresses with some eth for transfers
+    let tx = await poolManager.sendTransaction({ to: stETH_WHALE_ADDR, value: ethers.parseEther('1') });
+    await tx.wait();
+
+    tx = await poolManager.sendTransaction({ to: USDT_WHALE_ADDR, value: ethers.parseEther('1') });
+    await tx.wait();
+
     /// Transfer USDT and stETH to deposit user address from whale addresses
-    let tx = await USDT.connect(usdt_whale).transfer(await depositUser.getAddress(), ethers.parseUnits('1000000', 6));
+    tx = await USDT.connect(usdt_whale).transfer(await depositUser.getAddress(), ethers.parseUnits('1000000', 6));
     await tx.wait();
 
     tx = await stETH.connect(steth_whale).transfer(await depositUser.getAddress(), ethers.parseEther('2000'));
