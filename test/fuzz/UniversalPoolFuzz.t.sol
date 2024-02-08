@@ -87,7 +87,7 @@ contract UniversalPoolFuzz is UniversalPoolBase {
         alms.push(MockUniversalALMHelper.deployMockALM(address(pool), true));
 
         vm.startPrank(POOL_MANAGER);
-        pool.initializeTick(0, _defaultPoolState());
+        pool.initializeTick(0);
 
         pool.addALMPosition(false, false, true, 0, alms[0]);
         pool.addALMPosition(false, true, false, 0, alms[1]);

@@ -26,6 +26,7 @@ abstract contract UniversalPoolReentrancyGuard {
      ***********************************************/
 
     error UniversalPoolReentrancyGuard__reentrant();
+    error UniversalPoolReentrancyGuard__invalidLockType();
 
     /************************************************
      *  CONSTANTS
@@ -51,7 +52,7 @@ abstract contract UniversalPoolReentrancyGuard {
         @notice Modifier to lock a function with a particular lock.
         @param lockType The lock to use. Has to be from one of the locks in PoolLocks.
      */
-    modifier nonReentrant(Lock storage lockType) {
+    modifier nonReentrant(Lock lockType) {
         _lock(lockType);
         _;
         _unlock(lockType);
@@ -61,13 +62,13 @@ abstract contract UniversalPoolReentrancyGuard {
         @notice Modifier to lock all functions in the pool.
      */
     modifier nonReentrantGlobal() {
-        _lock(_poolLocks.withdrawals);
-        _lock(_poolLocks.deposit);
-        _lock(_poolLocks.swap);
+        _lock(Lock.WITHDRAWAL);
+        _lock(Lock.DEPOSIT);
+        _lock(Lock.SWAP);
         _;
-        _unlock(_poolLocks.swap);
-        _unlock(_poolLocks.deposit);
-        _unlock(_poolLocks.withdrawals);
+        _unlock(Lock.SWAP);
+        _unlock(Lock.DEPOSIT);
+        _unlock(Lock.WITHDRAWAL);
     }
 
     /************************************************
@@ -77,23 +78,47 @@ abstract contract UniversalPoolReentrancyGuard {
         @notice Checks that the lock has not already been taken. If lock is free, then it is taken.
         @param lockType The lock to use. Has to be from one of the locks in PoolLocks.
      */
-    function _lock(Lock storage lockType) internal {
+    function _lock(Lock lockType) internal {
         // On the first call to nonReentrant, _status will be _NOT_ENTERED
-        if (lockType.value != _NOT_ENTERED) {
+        if (_getLockValue(lockType) != _NOT_ENTERED) {
             revert UniversalPoolReentrancyGuard__reentrant();
         }
 
         // Any calls to nonReentrant after this point will fail
-        lockType.value = _ENTERED;
+        _setLockValue(lockType, _ENTERED);
     }
 
     /**
         @notice Frees the lock.
         @param lockType The lock to use. Has to be from one of the locks in PoolLocks.
      */
-    function _unlock(Lock storage lockType) internal {
+    function _unlock(Lock lockType) internal {
         // By storing the original value once again, a refund is triggered (see
         // https://eips.ethereum.org/EIPS/eip-2200)
-        lockType.value = _NOT_ENTERED;
+        _setLockValue(lockType, _NOT_ENTERED);
+    }
+
+    function _getLockValue(Lock lockType) private view returns (uint8) {
+        if (Lock.WITHDRAWAL == lockType) {
+            return _poolLocks.withdrawals;
+        } else if (Lock.DEPOSIT == lockType) {
+            return _poolLocks.deposit;
+        } else if (Lock.SWAP == lockType) {
+            return _poolLocks.swap;
+        } else {
+            revert UniversalPoolReentrancyGuard__invalidLockType();
+        }
+    }
+
+    function _setLockValue(Lock lockType, uint8 value) private {
+        if (Lock.WITHDRAWAL == lockType) {
+            _poolLocks.withdrawals = value;
+        } else if (Lock.DEPOSIT == lockType) {
+            _poolLocks.deposit = value;
+        } else if (Lock.SWAP == lockType) {
+            _poolLocks.swap = value;
+        } else {
+            revert UniversalPoolReentrancyGuard__invalidLockType();
+        }
     }
 }
