@@ -590,6 +590,9 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         assertEq(poolInterface.spotPriceTick(), 2);
         assertEq(protocolFactory.isValidUniversalPool(pool), true);
 
+        // set pool manager as address(0)
+        poolInterface.setPoolState(PoolState(0, 0, 0, 0, 0, 0, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS, ZERO_ADDRESS));
+
         // Check error on unauthorized call to pool without a pool manager
         vm.prank(signers[0]);
         vm.expectRevert(ProtocolFactory.ProtocolFactory__deployUniversalGauge_onlyPoolManager.selector);
