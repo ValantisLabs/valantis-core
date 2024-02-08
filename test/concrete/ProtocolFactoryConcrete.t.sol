@@ -585,23 +585,10 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         );
         IUniversalPool poolInterface = IUniversalPool(poolWithoutManager);
         assertEq(poolInterface.state().poolManager, address(this));
-        PoolState memory poolState = PoolState({
-            poolManagerFeeBips: 0,
-            feeProtocol0: 0,
-            feeProtocol1: 0,
-            feePoolManager0: 0,
-            feePoolManager1: 0,
-            swapFeeModuleUpdateTimestamp: block.timestamp,
-            swapFeeModule: address(0),
-            poolManager: address(0),
-            universalOracle: address(0),
-            gauge: address(0)
-        });
-        poolInterface.initializeTick(2, poolState);
+
+        poolInterface.initializeTick(2);
         assertEq(poolInterface.spotPriceTick(), 2);
         assertEq(protocolFactory.isValidUniversalPool(pool), true);
-        // Reset pool manager
-        assertEq(poolInterface.state().poolManager, address(0));
 
         // Check error on unauthorized call to pool without a pool manager
         vm.prank(signers[0]);
@@ -749,19 +736,8 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         // Check Universal Pool is deployed correctly
         pool = protocolFactory.deployUniversalPool(address(token0), address(token1), address(this), 0);
         IUniversalPool poolInterface = IUniversalPool(pool);
-        PoolState memory poolState = PoolState({
-            poolManagerFeeBips: 0,
-            feeProtocol0: 0,
-            feeProtocol1: 0,
-            feePoolManager0: 0,
-            feePoolManager1: 0,
-            swapFeeModuleUpdateTimestamp: block.timestamp,
-            swapFeeModule: address(0),
-            poolManager: address(this),
-            universalOracle: address(0),
-            gauge: address(0)
-        });
-        poolInterface.initializeTick(2, poolState);
+
+        poolInterface.initializeTick(2);
         assertEq(poolInterface.spotPriceTick(), 2);
         assertTrue(protocolFactory.isValidUniversalPool(pool));
         assertFalse(protocolFactory.isValidUniversalPool(makeAddr('FAKE_MODULE')));

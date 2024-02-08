@@ -55,7 +55,7 @@ interface IUniversalPool is IValantisPool {
 
     function withdrawLiquidity(uint256 _amount0, uint256 _amount1, address _recipient) external;
 
-    function initializeTick(int24 _tick, PoolState memory _initState) external;
+    function initializeTick(int24 _tick) external;
 
     function setMetaALMFeeShare(address _almAddress, uint64 _feeShare) external;
 }

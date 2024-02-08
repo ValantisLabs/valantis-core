@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-struct Lock {
-    uint8 value;
+enum Lock {
+    WITHDRAWAL,
+    DEPOSIT,
+    SWAP
 }
 
 struct PoolLocks {
@@ -13,14 +15,14 @@ struct PoolLocks {
                 * claimProtocolFees
                 * claimPoolManagerFees
      */
-    Lock withdrawals;
+    uint8 withdrawals;
     /**
         @notice Only locks the deposit function
     */
     // @audit is this lock needed? Is it safe to always keep deposits open.
-    Lock deposit;
+    uint8 deposit;
     /**
         @notice Only locks the swap function
     */
-    Lock swap;
+    uint8 swap;
 }

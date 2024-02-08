@@ -62,9 +62,9 @@ contract UniversalPoolConcrete is UniversalPoolBase {
 
         PoolLocks memory poolLockStatus = pool.getPoolLockStatus();
 
-        assertEq(poolLockStatus.withdrawals.value, 0);
-        assertEq(poolLockStatus.deposit.value, 0);
-        assertEq(poolLockStatus.swap.value, 0);
+        assertEq(poolLockStatus.withdrawals, 0);
+        assertEq(poolLockStatus.deposit, 0);
+        assertEq(poolLockStatus.swap, 0);
 
         assertEq(pool.getALMPositionsList().length, 0);
     }
@@ -73,7 +73,8 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         vm.expectRevert(UniversalPool.UniversalPool__invalidTokenAddresses.selector);
 
         // should error when both tokens are same
-        deployUniversalPool(protocolFactory, address(token0), address(token0), POOL_MANAGER, 0);
+        // not possible to get error with yul create2 deployment so direct deployment
+        new UniversalPool(address(token0), address(token0), address(protocolFactory), POOL_MANAGER, 0);
 
         address newPoolManager = _randomUser();
 
@@ -98,44 +99,32 @@ contract UniversalPoolConcrete is UniversalPoolBase {
      ***********************************************/
 
     function test_initializeTick() public {
-        PoolState memory defaultState = _defaultPoolState();
-
         // check non pool manager can't call
         vm.expectRevert(UniversalPool.UniversalPool__onlyPoolManager.selector);
-        pool.initializeTick(0, defaultState);
+        pool.initializeTick(0);
 
         // check tick out of range of price tick is not allowed
         int24 tick = PriceTickMath.MIN_PRICE_TICK - 1;
 
         vm.prank(POOL_MANAGER);
         vm.expectRevert(UniversalPool.UniversalPool__initializeTick.selector);
-        pool.initializeTick(tick, defaultState);
+        pool.initializeTick(tick);
 
         tick = PriceTickMath.MAX_PRICE_TICK + 1;
 
         vm.prank(POOL_MANAGER);
         vm.expectRevert(UniversalPool.UniversalPool__initializeTick.selector);
-        pool.initializeTick(tick, defaultState);
+        pool.initializeTick(tick);
 
         tick = 1;
-        defaultState.swapFeeModule = makeAddr('SWAP_FEE_MODULE');
-        defaultState.universalOracle = makeAddr('ORACLE');
-        defaultState.poolManagerFeeBips = 100;
 
-        vm.warp(3 days + 1);
         vm.prank(POOL_MANAGER);
-        pool.initializeTick(tick, defaultState);
+        pool.initializeTick(tick);
 
         // check initialised pool is not allowed
         vm.prank(POOL_MANAGER);
         vm.expectRevert(UniversalPool.UniversalPool__initializeTick.selector);
-        pool.initializeTick(tick, defaultState);
-
-        // check values are initialised correctly
-        PoolState memory poolState = pool.state();
-        assertEq(poolState.swapFeeModule, defaultState.swapFeeModule);
-        assertEq(poolState.universalOracle, defaultState.universalOracle);
-        assertEq(poolState.poolManagerFeeBips, defaultState.poolManagerFeeBips);
+        pool.initializeTick(tick);
 
         _lockPool(2);
 
@@ -149,9 +138,9 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         // check locks are unlocked
         PoolLocks memory poolLockStatus = pool.getPoolLockStatus();
 
-        assertEq(poolLockStatus.withdrawals.value, 1);
-        assertEq(poolLockStatus.deposit.value, 1);
-        assertEq(poolLockStatus.swap.value, 1);
+        assertEq(poolLockStatus.withdrawals, 1);
+        assertEq(poolLockStatus.deposit, 1);
+        assertEq(poolLockStatus.swap, 1);
     }
 
     function test_setGauge() public {
@@ -441,8 +430,6 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         pool.addALMPosition(false, true, true, 0, address(this));
 
         pool.depositLiquidity(1e18, 2e18, abi.encode(1e18, 2e18));
-
-        _unlockPool(0);
 
         vm.expectRevert(ALMLib.ALMLib__withdrawLiquidity_insufficientReserves.selector);
         pool.withdrawLiquidity(1e18 + 1, 2e18 + 1, RECIPIENT);
@@ -900,7 +887,7 @@ contract UniversalPoolConcrete is UniversalPoolBase {
 
     function _initializePool() internal {
         vm.prank(POOL_MANAGER);
-        pool.initializeTick(0, _defaultPoolState());
+        pool.initializeTick(0);
     }
 
     function _getAmountInUsedExpected(uint256 amountInFilled, uint256 feeBips) internal pure returns (uint256) {

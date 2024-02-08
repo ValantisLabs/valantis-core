@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
+import { console } from 'forge-std/console.sol';
 import { ERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol';
 import { IERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import { SafeERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
@@ -54,11 +55,11 @@ contract UniversalPoolBase is UniversalPoolDeployer, Base {
 
         PoolLocks memory poolLockStatus = pool.getPoolLockStatus();
 
-        assertEq(poolLockStatus.withdrawals.value, 2);
-        assertEq(poolLockStatus.swap.value, 2);
+        assertEq(poolLockStatus.withdrawals, 2);
+        assertEq(poolLockStatus.swap, 2);
 
         // deposit is enabled
-        assertEq(poolLockStatus.deposit.value, 1);
+        assertEq(poolLockStatus.deposit, 1);
 
         if (refreshReserves) pool.depositLiquidity(amount0, amount1, abi.encode(amount0, amount1));
     }
@@ -71,9 +72,9 @@ contract UniversalPoolBase is UniversalPoolDeployer, Base {
     ) external returns (ALMLiquidityQuote memory almLiquidityQuote) {
         PoolLocks memory poolLockStatus = pool.getPoolLockStatus();
 
-        assertEq(poolLockStatus.withdrawals.value, 2);
-        assertEq(poolLockStatus.swap.value, 2);
-        assertEq(poolLockStatus.deposit.value, 2);
+        assertEq(poolLockStatus.withdrawals, 2);
+        assertEq(poolLockStatus.swap, 2);
+        assertEq(poolLockStatus.deposit, 2);
 
         (almLiquidityQuote) = abi.decode(internalContext, (ALMLiquidityQuote));
     }
@@ -94,11 +95,11 @@ contract UniversalPoolBase is UniversalPoolDeployer, Base {
         PoolLocks memory poolLockStatus = pool.getPoolLockStatus();
 
         // withdrawals and deposits should be enabled
-        assertEq(poolLockStatus.withdrawals.value, 1, 'ALM Swap callback: invalid withdrawal lock');
-        assertEq(poolLockStatus.deposit.value, 1, 'ALM Swap callback: invalid deposit lock');
+        assertEq(poolLockStatus.withdrawals, 1, 'ALM Swap callback: invalid withdrawal lock');
+        assertEq(poolLockStatus.deposit, 1, 'ALM Swap callback: invalid deposit lock');
 
         // swap should still be disabled
-        assertEq(poolLockStatus.swap.value, 2, 'ALM Swap callback: invalid swap lock');
+        assertEq(poolLockStatus.swap, 2, 'ALM Swap callback: invalid swap lock');
     }
 
     // swap callback
@@ -147,7 +148,7 @@ contract UniversalPoolBase is UniversalPoolDeployer, Base {
         PoolLocks memory poolLockStatus = pool.getPoolLockStatus();
 
         // only deposit should be locked
-        assertEq(poolLockStatus.deposit.value, 2);
+        assertEq(poolLockStatus.deposit, 2);
 
         address DEPOSIT_USER = makeAddr('DEPOSIT');
 
@@ -221,37 +222,43 @@ contract UniversalPoolBase is UniversalPoolDeployer, Base {
     // overwrite storage value helper functions
 
     function _setPriceTick(int24 tick) internal {
-        vm.store(address(pool), bytes32(uint256(3)), bytes32(uint256(uint24(tick))));
+        vm.store(address(pool), bytes32(uint256(1)), bytes32(uint256(uint24(tick))));
     }
 
     function _setALMReserves(uint256 almNum, uint256 reserve0, uint256 reserve1) internal {
-        bytes32 reserve0Slot = bytes32(uint256(keccak256(abi.encodePacked(uint256(15)))) + 5 * almNum + 1);
-        bytes32 reserve1Slot = bytes32(uint256(keccak256(abi.encodePacked(uint256(15)))) + 5 * almNum + 2);
+        bytes32 reserve0Slot = bytes32(uint256(keccak256(abi.encodePacked(uint256(13)))) + 5 * almNum + 1);
+        bytes32 reserve1Slot = bytes32(uint256(keccak256(abi.encodePacked(uint256(13)))) + 5 * almNum + 2);
 
         vm.store(address(pool), reserve0Slot, bytes32(reserve0));
         vm.store(address(pool), reserve1Slot, bytes32(reserve1));
     }
 
     function _setPoolManagerFeeBips(uint256 feeBips) internal {
-        vm.store(address(pool), bytes32(uint256(4)), bytes32(feeBips));
+        vm.store(address(pool), bytes32(uint256(2)), bytes32(feeBips));
     }
 
     function _setProtocolFees(uint256 fee0, uint256 fee1) internal {
+        vm.store(address(pool), bytes32(uint256(3)), bytes32(fee0));
+        vm.store(address(pool), bytes32(uint256(4)), bytes32(fee1));
+    }
+
+    function _setPoolManagerFees(uint256 fee0, uint256 fee1) internal {
         vm.store(address(pool), bytes32(uint256(5)), bytes32(fee0));
         vm.store(address(pool), bytes32(uint256(6)), bytes32(fee1));
     }
 
-    function _setPoolManagerFees(uint256 fee0, uint256 fee1) internal {
-        vm.store(address(pool), bytes32(uint256(7)), bytes32(fee0));
-        vm.store(address(pool), bytes32(uint256(8)), bytes32(fee1));
-    }
-
     // 0 offset for withdrawal lock, 1 for deposit and 2 for swap
     function _lockPool(uint8 offset) internal {
-        vm.store(address(pool), bytes32(uint256(offset)), bytes32(uint256(2)));
+        uint256 currentLock = uint256(vm.load(address(pool), bytes32(uint256(0))));
+        currentLock = (currentLock ^ (1 << (8 * offset))) | (2 << (8 * offset));
+
+        vm.store(address(pool), bytes32(uint256(0)), bytes32(currentLock));
     }
 
     function _unlockPool(uint8 offset) internal {
-        vm.store(address(pool), bytes32(uint256(offset)), bytes32(uint256(1)));
+        uint256 currentLock = uint256(vm.load(address(pool), bytes32(uint256(0))));
+        currentLock = (currentLock ^ (2 << (8 * offset))) | (1 << (8 * offset));
+
+        vm.store(address(pool), bytes32(uint256(0)), bytes32(currentLock));
     }
 }
