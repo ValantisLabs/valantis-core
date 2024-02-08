@@ -201,6 +201,9 @@ describe('Universal Pool', async () => {
     const amount0 = ethers.parseUnits('1000', 6);
     const amount1 = ethers.parseUnits('2000', 6);
 
+    const preUsdtBalance = await USDT.connect(withdrawUser).balanceOf(await withdrawUser.getAddress());
+    const preUsdcBalance = await USDC.connect(withdrawUser).balanceOf(await withdrawUser.getAddress());
+
     const tx = await alm.withdrawLiquidity(amount0, amount1, await withdrawUser.getAddress());
     await tx.wait();
 
@@ -218,7 +221,7 @@ describe('Universal Pool', async () => {
     const usdtBalance = await USDT.connect(withdrawUser).balanceOf(await withdrawUser.getAddress());
     const usdcBalance = await USDC.connect(withdrawUser).balanceOf(await withdrawUser.getAddress());
 
-    expect(usdcBalance).equals(amount0, 'Amount not transferred to receipent for token0');
-    expect(usdtBalance).equals(amount1, 'Amount not transferred to receipent for token1');
+    expect(usdcBalance - preUsdcBalance).equals(amount0, 'Amount not transferred to receipent for token0');
+    expect(usdtBalance - preUsdtBalance).equals(amount1, 'Amount not transferred to receipent for token1');
   });
 });
