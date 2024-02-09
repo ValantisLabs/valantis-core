@@ -41,7 +41,7 @@ library PriceTickMath {
     // solhint-disable-next-line private-vars-leading-underscore
     uint256 internal constant MIN_PRICE = 16777402;
     // solhint-disable-next-line private-vars-leading-underscore
-    uint256 internal constant MAX_PRICE = 6901670243043972986255200373924895033102563660822112080378694173663318;
+    uint256 internal constant MAX_PRICE = 6901670243043972986255200373924895033102563660822112080378694173663319;
 
     /**
         @notice Returns Q128.128 price at `tick`.
@@ -58,7 +58,8 @@ library PriceTickMath {
             }
 
             if (tick > 0) {
-                priceX128 = type(uint256).max / _getPriceAtAbsTickUnder(absTick);
+                // Add 1 to compensate for rounding down
+                priceX128 = (type(uint256).max / _getPriceAtAbsTickUnder(absTick)) + 1;
             } else {
                 priceX128 = _getPriceAtAbsTickOver(absTick);
             }
