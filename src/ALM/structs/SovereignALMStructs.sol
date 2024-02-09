@@ -11,7 +11,6 @@ struct ALMLiquidityQuoteInput {
 }
 
 struct ALMLiquidityQuote {
-    bool quoteFromPoolReserves;
     bool isCallbackOnSwap;
     uint256 amountOut;
     uint256 amountInFilled;

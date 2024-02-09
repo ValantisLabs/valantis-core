@@ -132,7 +132,6 @@ contract MockSovereignALM is ISovereignALM {
             : reserveOut - Math.mulDiv(reserve0, reserve1, reserveIn + _almLiquidityQuotePoolInput.amountInMinusFee);
 
         ALMLiquidityQuote memory almLiquidityQuote = ALMLiquidityQuote(
-            quoteFromPool,
             swapCallback,
             amountOutExpected,
             quoteExcessAmountIn

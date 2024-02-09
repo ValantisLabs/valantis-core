@@ -655,7 +655,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         // Test failing cases for invalid liquidity quote by ALM.
 
-        swapParams.swapContext.externalContext = abi.encode(ALMLiquidityQuote(true, false, 10e18, 11e18));
+        swapParams.swapContext.externalContext = abi.encode(ALMLiquidityQuote(false, 10e18, 11e18));
 
         // This revert due to more reserve being quoted than was available in reserves.
         vm.expectRevert(SovereignPool.SovereignPool__swap_invalidLiquidityQuote.selector);
@@ -676,7 +676,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         pool.swap(swapParams);
 
         // If amountOut quoted is zero, both amountIn and amountOut returned should be zero.
-        swapParams.swapContext.externalContext = abi.encode(ALMLiquidityQuote(true, false, 0, 5e18));
+        swapParams.swapContext.externalContext = abi.encode(ALMLiquidityQuote(false, 0, 5e18));
 
         (uint256 amountInUsed, uint256 amountOut) = pool.swap(swapParams);
 
@@ -687,7 +687,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         // When we want funds to be transferred through callback.
         swapParams.isSwapCallback = true;
-        swapParams.swapContext.externalContext = abi.encode(ALMLiquidityQuote(true, false, 5e18, 5e18));
+        swapParams.swapContext.externalContext = abi.encode(ALMLiquidityQuote(false, 5e18, 5e18));
         swapParams.swapContext.swapCallbackContext = abi.encode(pool.sovereignVault(), 5e18 - 1);
 
         // Amount transferred in is less than amountIn requested.
@@ -713,7 +713,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         _setSwapFeeModule(address(this));
         swapParams.swapContext.swapFeeModuleContext = abi.encode(100, new bytes(0));
         swapParams.swapContext.externalContext = abi.encode(
-            ALMLiquidityQuote(true, false, 5e18, Math.mulDiv(10e18, 1e4, 1e4 + 100))
+            ALMLiquidityQuote(false, 5e18, Math.mulDiv(10e18, 1e4, 1e4 + 100))
         );
 
         // Half fee to pool manager.
@@ -760,7 +760,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         swapParams.isZeroToOne = true;
         swapParams.swapContext.swapFeeModuleContext = abi.encode(100, abi.encode('test'));
         swapParams.swapContext.externalContext = abi.encode(
-            ALMLiquidityQuote(true, true, 5e18, Math.mulDiv(10e18, 1e4, 1e4 + 100))
+            ALMLiquidityQuote(true, 5e18, Math.mulDiv(10e18, 1e4, 1e4 + 100))
         );
 
         // Half fee to pool manager.
@@ -856,7 +856,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         );
 
         swapParams.swapContext.externalContext = abi.encode(
-            ALMLiquidityQuote(true, true, 5e18, Math.mulDiv(10e18, 1e4, 1e4 + 100))
+            ALMLiquidityQuote(true, 5e18, Math.mulDiv(10e18, 1e4, 1e4 + 100))
         );
 
         // Should revert when error in token in transfer for rebase token is more than 10.
@@ -915,7 +915,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         swapParams.swapContext.swapCallbackContext = abi.encode(pool.sovereignVault(), 10e18 - 9);
 
         swapParams.swapContext.externalContext = abi.encode(
-            ALMLiquidityQuote(true, true, 5e18, Math.mulDiv(10e18, 1e4, 1e4 + 100))
+            ALMLiquidityQuote(true, 5e18, Math.mulDiv(10e18, 1e4, 1e4 + 100))
         );
 
         (amountInUsed, amountOut) = pool.swap(swapParams);
@@ -948,7 +948,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         _setALM(address(this));
         _setReserves(10e18, 0);
 
-        swapParams.swapContext.externalContext = abi.encode(ALMLiquidityQuote(true, false, 5e18, 5e18));
+        swapParams.swapContext.externalContext = abi.encode(ALMLiquidityQuote(false, 5e18, 5e18));
         _setupBalanceForUser(address(pool), address(token0), 10e18);
         _setupBalanceForUser(SWAP_USER, address(token1), 5e18);
 
@@ -996,7 +996,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         swapParams.swapTokenOut = address(token0);
         swapParams.recipient = makeAddr('RECIPIENT');
 
-        swapParams.swapContext.externalContext = abi.encode(ALMLiquidityQuote(true, true, 5e18, 10e18));
+        swapParams.swapContext.externalContext = abi.encode(ALMLiquidityQuote(true, 5e18, 10e18));
 
         (uint256 amountIn, uint256 amountOut) = pool.swap(swapParams);
 
