@@ -360,7 +360,7 @@ contract SovereignPoolFuzz is SovereignPoolBase {
         }
 
         swapParams.swapContext.externalContext = abi.encode(
-            ALMLiquidityQuote(true, true, fuzzParams.amountOut, fuzzParams.amountInFilled)
+            ALMLiquidityQuote(true, fuzzParams.amountOut, fuzzParams.amountInFilled)
         );
 
         uint256 amountInTransferred = fuzzParams.amountInFilled ==
