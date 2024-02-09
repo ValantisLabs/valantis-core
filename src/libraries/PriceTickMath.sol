@@ -58,7 +58,8 @@ library PriceTickMath {
             }
 
             if (tick > 0) {
-                priceX128 = type(uint256).max / _getPriceAtAbsTickUnder(absTick);
+                // Add 1 to compensate for rounding down
+                priceX128 = (type(uint256).max / _getPriceAtAbsTickUnder(absTick)) + 1;
             } else {
                 priceX128 = _getPriceAtAbsTickOver(absTick);
             }
