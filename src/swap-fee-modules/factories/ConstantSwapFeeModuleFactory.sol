@@ -56,10 +56,10 @@ contract ConstantSwapFeeModuleFactory is IValantisDeployer {
             revert ConstantSwapFeeModuleFactory__deploy_invalidDeployer();
         }
 
-        (address pool, uint256 swapFeeBips, address feeModuleManager) = abi.decode(
+        (address pool, address feeModuleManager, uint256 swapFeeBips) = abi.decode(
             _constructorArgs,
-            (address, uint256, address)
+            (address, address, uint256)
         );
-        deployment = address(new ConstantSwapFeeModule{ salt: _salt }(pool, swapFeeBips, feeModuleManager));
+        deployment = address(new ConstantSwapFeeModule{ salt: _salt }(pool, feeModuleManager, swapFeeBips));
     }
 }
