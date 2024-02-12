@@ -63,14 +63,14 @@ contract ConstantSwapFeeModule is IConstantSwapFeeModule {
      *  CONSTRUCTOR
      ***********************************************/
 
-    constructor(address _pool, uint256 _swapFeeBips, address _feeModuleManager) {
+    constructor(address _pool, address _feeModuleManager, uint256 _swapFeeBips) {
         if (_swapFeeBips > MAX_SWAP_FEE_BIPS) {
             revert ConstantSwapFeeModule__invalidSwapFeeBips();
         }
 
         pool = _pool;
-        swapFeeBips = _swapFeeBips;
         feeModuleManager = _feeModuleManager;
+        swapFeeBips = _swapFeeBips;
     }
 
     /************************************************

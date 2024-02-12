@@ -69,4 +69,26 @@ cloc src --not-match-d=mocks
 
 **swap-fee-modules:** Swap Fee module interface, which can be implemented and then plugged into Sovereign pools. Only contains a swap fee module whose fixed swap fee is configurable by a designated address.
 
-**utils:** Utils contracts which can be extended or used as library by main contracts
+**utils:** Utils contracts which can be extended or used as library by main contracts.
+
+**mocks:** Mock contracts used to simulate different behaviour for different components.
+
+### test
+
+All relevent tests for contracts in src are in this folder
+
+**base:** Base contracts for a respective contract, which are extended in concrete/fuzz/invariant tests for respective contracts. They contain helper internal functions to help in testing.
+
+**helpers:** Helper contracts for mock contracts, to enable interacting with mock contracts. It is recommended to use respective helper contract to interact with mocks.
+
+**deployers:** Deployer contract for respective contract, containing function for deploying target contract, this needs to be extended by test contract which wants to use or test target contract.
+
+**libraries:** Tests for library contracts. It contains fuzz and concrete tests, both for target library.
+
+**concrete:** Concrete tests are used to unit test target contract with hard coded values.
+
+**fuzz:** Fuzz tests are used to test public functions in target contracts like Universal Pool and Sovereign Pool.
+
+**integration:** Integration tests are used to test deployment and test basic functions of target contracts on mainnet fork, using real tokens.
+
+**invariant:** Invariant tests are use to test for certain invariant for target contract. Currently only covers Sovereign Pool.

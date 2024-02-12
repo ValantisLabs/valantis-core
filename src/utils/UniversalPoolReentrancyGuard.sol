@@ -26,7 +26,6 @@ abstract contract UniversalPoolReentrancyGuard {
      ***********************************************/
 
     error UniversalPoolReentrancyGuard__reentrant();
-    error UniversalPoolReentrancyGuard__invalidLockType();
 
     /************************************************
      *  CONSTANTS
@@ -103,10 +102,8 @@ abstract contract UniversalPoolReentrancyGuard {
             return _poolLocks.withdrawals;
         } else if (Lock.DEPOSIT == lockType) {
             return _poolLocks.deposit;
-        } else if (Lock.SWAP == lockType) {
-            return _poolLocks.swap;
         } else {
-            revert UniversalPoolReentrancyGuard__invalidLockType();
+            return _poolLocks.swap;
         }
     }
 
@@ -115,10 +112,8 @@ abstract contract UniversalPoolReentrancyGuard {
             _poolLocks.withdrawals = value;
         } else if (Lock.DEPOSIT == lockType) {
             _poolLocks.deposit = value;
-        } else if (Lock.SWAP == lockType) {
-            _poolLocks.swap = value;
         } else {
-            revert UniversalPoolReentrancyGuard__invalidLockType();
+            _poolLocks.swap = value;
         }
     }
 }
