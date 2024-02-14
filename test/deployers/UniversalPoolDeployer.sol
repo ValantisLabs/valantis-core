@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { UniversalPool } from 'src/pools/UniversalPool.sol';
-import { UniversalPoolFactory } from 'src/pools/factories/UniversalPoolFactory.sol';
-import { ProtocolFactory } from 'src/protocol-factory/ProtocolFactory.sol';
+import { UniversalPool } from '../../src/pools/UniversalPool.sol';
+import { UniversalPoolFactory } from '../../src/pools/factories/UniversalPoolFactory.sol';
+import { ProtocolFactory } from '../../src/protocol-factory/ProtocolFactory.sol';
 
-import { ProtocolFactoryDeployer } from 'test/deployers/ProtocolFactoryDeployer.sol';
-import { UniversalPoolFactoryDeployer } from 'test/deployers/UniversalPoolFactoryDeployer.sol';
+import { ProtocolFactoryDeployer } from '../deployers/ProtocolFactoryDeployer.sol';
+import { UniversalPoolFactoryDeployer } from '../deployers/UniversalPoolFactoryDeployer.sol';
 
 contract UniversalPoolDeployer is UniversalPoolFactoryDeployer, ProtocolFactoryDeployer {
     function deployUniversalPool(
