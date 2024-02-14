@@ -51,9 +51,9 @@ contract Base is Test {
 
     function _deployRebaseToken(bool isTokenZero) internal {
         if (isTokenZero) {
-            token0 = ERC20(new MockRebaseToken('Token 0', 'TOKEN0'));
+            token0 = ERC20(address(new MockRebaseToken('Token 0', 'TOKEN0')));
         } else {
-            token1 = ERC20(new MockRebaseToken('TOKEN 1', 'TOKEN1'));
+            token1 = ERC20(address(new MockRebaseToken('TOKEN 1', 'TOKEN1')));
         }
     }
 
