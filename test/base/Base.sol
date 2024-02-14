@@ -6,7 +6,7 @@ import { ERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.so
 import { IERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import { SafeERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 
-import { MockRebaseToken } from 'src/mocks/MockRebaseToken.sol';
+import { MockRebaseToken } from '../../src/mocks/MockRebaseToken.sol';
 
 contract Base is Test {
     using SafeERC20 for IERC20;

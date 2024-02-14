@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
-import { ProtocolFactory } from 'src/protocol-factory/ProtocolFactory.sol';
-import { ConstantSwapFeeModule } from 'src/swap-fee-modules/ConstantSwapFeeModule.sol';
-import { ConstantSwapFeeModuleFactory } from 'src/swap-fee-modules/factories/ConstantSwapFeeModuleFactory.sol';
+import { ProtocolFactory } from '../../src/protocol-factory/ProtocolFactory.sol';
+import { ConstantSwapFeeModule } from '../../src/swap-fee-modules/ConstantSwapFeeModule.sol';
+import { ConstantSwapFeeModuleFactory } from '../../src/swap-fee-modules/factories/ConstantSwapFeeModuleFactory.sol';
 
-import { ProtocolFactoryDeployer } from 'test/deployers/ProtocolFactoryDeployer.sol';
-import { ConstantSwapFeeModuleFactoryDeployer } from 'test/deployers/ConstantSwapFeeModuleFactoryDeployer.sol';
+import { ProtocolFactoryDeployer } from '../deployers/ProtocolFactoryDeployer.sol';
+import { ConstantSwapFeeModuleFactoryDeployer } from '../deployers/ConstantSwapFeeModuleFactoryDeployer.sol';
 
 contract ConstantSwapFeeModuleDeployer is ProtocolFactoryDeployer, ConstantSwapFeeModuleFactoryDeployer {
     function deployConstantSwapFeeModule(

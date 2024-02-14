@@ -6,20 +6,20 @@ import { ERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.so
 import { IERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 import { SafeERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol';
 
-import { UniversalPool } from 'src/pools/UniversalPool.sol';
-import { ProtocolFactory } from 'src/protocol-factory/ProtocolFactory.sol';
-import { PoolState } from 'src/pools/structs/UniversalPoolStructs.sol';
+import { UniversalPool } from '../../src/pools/UniversalPool.sol';
+import { ProtocolFactory } from '../../src/protocol-factory/ProtocolFactory.sol';
+import { PoolState } from '../../src/pools/structs/UniversalPoolStructs.sol';
 import {
     ALMLiquidityQuotePoolInputs,
     ALMReserves,
     ALMLiquidityQuote,
     ALMCachedLiquidityQuote
-} from 'src/ALM/structs/UniversalALMStructs.sol';
-import { PoolLocks, Lock } from 'src/pools/structs/ReentrancyGuardStructs.sol';
-import { SwapFeeModuleData } from 'src/swap-fee-modules/interfaces/ISwapFeeModule.sol';
+} from '../../src/ALM/structs/UniversalALMStructs.sol';
+import { PoolLocks, Lock } from '../../src/pools/structs/ReentrancyGuardStructs.sol';
+import { SwapFeeModuleData } from '../../src/swap-fee-modules/interfaces/ISwapFeeModule.sol';
 
-import { Base } from 'test/base/Base.sol';
-import { UniversalPoolDeployer } from 'test/deployers/UniversalPoolDeployer.sol';
+import { Base } from '../base/Base.sol';
+import { UniversalPoolDeployer } from '../deployers/UniversalPoolDeployer.sol';
 
 contract UniversalPoolBase is UniversalPoolDeployer, Base {
     using SafeERC20 for IERC20;
