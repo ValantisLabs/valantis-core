@@ -675,13 +675,11 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         vm.expectRevert(SovereignPool.SovereignPool__swap_invalidLiquidityQuote.selector);
         pool.swap(swapParams);
 
-        // If amountOut quoted is zero, both amountIn and amountOut returned should be zero.
+        // If amountOut quoted is zero, should revert
         swapParams.swapContext.externalContext = abi.encode(ALMLiquidityQuote(false, 0, 5e18));
 
-        (uint256 amountInUsed, uint256 amountOut) = pool.swap(swapParams);
-
-        assertEq(amountInUsed, 0);
-        assertEq(amountOut, 0);
+        vm.expectRevert(SovereignPool.SovereignPool__swap_zeroAmountOut.selector);
+        pool.swap(swapParams);
 
         _setupBalanceForUser(address(pool), address(token0), 10e18);
 
@@ -692,7 +690,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         // Amount transferred in is less than amountIn requested.
         vm.expectRevert(SovereignPool.SovereignPool___handleTokenInOnSwap_invalidTokenInAmount.selector);
-        (amountInUsed, amountOut) = pool.swap(swapParams);
+        (uint256 amountInUsed, uint256 amountOut) = pool.swap(swapParams);
 
         swapParams.isSwapCallback = false;
 

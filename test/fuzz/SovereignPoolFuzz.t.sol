@@ -117,7 +117,9 @@ contract SovereignPoolFuzz is SovereignPoolBase {
         bytes memory depositData = abi.encode(0, fuzzParams.amount0ToDeposit, fuzzParams.amount1ToDeposit);
         (uint256 preReserve0, uint256 preReserve1) = pool.getReserves();
 
-        if (
+        if (fuzzParams.amount0 == 0 && fuzzParams.amount0ToDeposit > 0) {
+            vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_incorrectTokenAmount.selector);
+        } else if (
             pool.isToken0Rebase() &&
             fuzzParams.amount0 != 0 &&
             Utils.getAbsoluteDiff(fuzzParams.amount0ToDeposit, fuzzParams.amount0) > pool.token0AbsErrorTolerance()
@@ -127,6 +129,8 @@ contract SovereignPoolFuzz is SovereignPoolBase {
             !pool.isToken0Rebase() && fuzzParams.amount0ToDeposit != fuzzParams.amount0 && fuzzParams.amount0 != 0
         ) {
             vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_insufficientToken0Amount.selector);
+        } else if (fuzzParams.amount1 == 0 && fuzzParams.amount1ToDeposit > 0) {
+            vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_incorrectTokenAmount.selector);
         } else if (
             pool.isToken1Rebase() &&
             fuzzParams.amount1 != 0 &&
@@ -366,7 +370,8 @@ contract SovereignPoolFuzz is SovereignPoolBase {
         uint256 amountInTransferred = fuzzParams.amountInFilled ==
             Math.mulDiv(fuzzParams.amountIn, 1e4, 1e4 + pool.defaultSwapFeeBips())
             ? fuzzParams.amountIn
-            : fuzzParams.amountInFilled + Math.mulDiv(fuzzParams.amountInFilled, pool.defaultSwapFeeBips(), 1e4);
+            : fuzzParams.amountInFilled +
+                Math.mulDiv(fuzzParams.amountInFilled, pool.defaultSwapFeeBips(), 1e4, Math.Rounding.Up);
 
         if (swapParams.isSwapCallback) {
             swapParams.swapContext.swapCallbackContext = abi.encode(pool.sovereignVault(), amountInTransferred);
@@ -380,9 +385,8 @@ contract SovereignPoolFuzz is SovereignPoolBase {
         }
 
         if (fuzzParams.amountOut == 0) {
-            (uint256 amountInUsed_, uint256 amountOut_) = pool.swap(swapParams);
-            assertEq(amountInUsed_, 0);
-            assertEq(amountOut_, 0);
+            vm.expectRevert(SovereignPool.SovereignPool__swap_zeroAmountOut.selector);
+            pool.swap(swapParams);
             return;
         }
 

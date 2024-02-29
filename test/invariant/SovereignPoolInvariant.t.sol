@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
+import { Math } from 'lib/openzeppelin-contracts/contracts/utils/math/Math.sol';
+
 import { SovereignPool } from 'src/pools/SovereignPool.sol';
 import {
     SovereignPoolSwapParams,
@@ -8,6 +10,8 @@ import {
     SovereignPoolConstructorArgs
 } from 'src/pools/structs/SovereignPoolStructs.sol';
 import { MockSovereignALM } from 'src/mocks/MockSovereignALM.sol';
+import { MockSwapFeeModule } from 'src/mocks/MockSwapFeeModule.sol';
+import { SwapFeeModuleData } from 'src/swap-fee-modules/interfaces/ISwapFeeModule.sol';
 
 import { SovereignPoolBase } from 'test/base/SovereignPoolBase.t.sol';
 import { MockSovereignALMHelper } from 'test/helpers/MockSovereignALMHelper.sol';
@@ -138,6 +142,28 @@ contract SovereignPoolInvariantTest is InvariantBase, SovereignPoolBase {
             _setupBalanceForUser(USER, address(token0), amountIn);
         } else {
             _setupBalanceForUser(USER, address(token1), amountIn);
+        }
+
+        SwapFeeModuleData memory swapFeeModuleData = MockSwapFeeModule(pool.swapFeeModule()).getSwapFeeInBips(
+            false,
+            0,
+            ZERO_ADDRESS,
+            new bytes(0)
+        );
+
+        uint256 amountInMinusFee = Math.mulDiv(amountIn, 1e4, 1e4 + swapFeeModuleData.feeInBips);
+
+        uint256 reserveOut = isZeroToOne ? reserve1 : reserve0;
+        uint256 reserveIn = isZeroToOne ? reserve0 : reserve1;
+
+        if (reserveIn + amountInMinusFee == 0) {
+            return;
+        }
+
+        uint256 expectedAmountOut = reserveOut - Math.mulDiv(reserve0, reserve1, reserveIn + amountInMinusFee);
+
+        if (expectedAmountOut == 0) {
+            return;
         }
 
         address swapTokenOut = isZeroToOne ? pool.token1() : pool.token0();

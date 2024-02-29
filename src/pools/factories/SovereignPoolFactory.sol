@@ -25,7 +25,7 @@ contract SovereignPoolFactory is IPoolDeployer {
 
         // Salt to trigger a create2 deployment,
         // as create is prone to re-org attacks
-        bytes32 salt = keccak256(abi.encode(nonce, block.chainid));
+        bytes32 salt = keccak256(abi.encode(nonce, block.chainid, _constructorArgs));
         deployment = address(new SovereignPool{ salt: salt }(args));
 
         nonce++;
