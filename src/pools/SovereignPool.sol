@@ -757,7 +757,12 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
                 _MAX_SWAP_FEE_BIPS,
                 Math.Rounding.Up
             );
-            amountInUsed = liquidityQuote.amountInFilled + effectiveFee;
+            if (liquidityQuote.amountInFilled + effectiveFee > swapCache.amountInWithoutFee) {
+                amountInUsed = swapCache.amountInWithoutFee;
+                effectiveFee = _swapParams.amountIn - swapCache.amountInWithoutFee;
+            } else {
+                amountInUsed = liquidityQuote.amountInFilled + effectiveFee;
+            }
         } else {
             // Using above formula in case amountInWithoutFee == amountInFilled introduces rounding errors
             effectiveFee = _swapParams.amountIn - swapCache.amountInWithoutFee;
