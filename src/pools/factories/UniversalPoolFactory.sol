@@ -21,7 +21,7 @@ contract UniversalPoolFactory is IPoolDeployer {
     function deploy(bytes32, bytes calldata _constructorArgs) external override returns (address deployment) {
         // Salt to trigger a create2 deployment,
         // as create is prone to re-org attacks
-        bytes32 salt = keccak256(abi.encode(nonce, block.chainid));
+        bytes32 salt = keccak256(abi.encode(nonce, block.chainid, _constructorArgs));
 
         bytes memory bytecode = abi.encodePacked(UniversalPoolFactoryHelper.getContractBytecode(), _constructorArgs);
 

@@ -62,6 +62,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
     error SovereignPool__depositLiquidity_depositDisabled();
     error SovereignPool__depositLiquidity_excessiveToken0ErrorOnTransfer();
     error SovereignPool__depositLiquidity_excessiveToken1ErrorOnTransfer();
+    error SovereignPool__depositLiquidity_incorrectTokenAmount();
     error SovereignPool__depositLiquidity_insufficientToken0Amount();
     error SovereignPool__depositLiquidity_insufficientToken1Amount();
     error SovereignPool__depositLiquidity_zeroTotalDepositAmount();
@@ -76,6 +77,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
     error SovereignPool__swap_invalidRecipient();
     error SovereignPool__swap_insufficientAmountIn();
     error SovereignPool__swap_invalidSwapTokenOut();
+    error SovereignPool__swap_zeroAmountOut();
     error SovereignPool__setSwapFeeModule_timelock();
     error SovereignPool__withdrawLiquidity_insufficientReserve0();
     error SovereignPool__withdrawLiquidity_insufficientReserve1();
@@ -451,6 +453,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
             poolManagerFeeBips = 0;
             // It will be assumed pool is not going to contribute anything to protocol fees.
             _claimPoolManagerFees(0, 0, msg.sender);
+            emit PoolManagerFeeSet(0);
         }
 
         emit PoolManagerSet(_manager);
@@ -685,17 +688,21 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
         }
 
         // Calculate swap fee in bips
-        SwapFeeModuleData memory swapFeeModuleData = address(swapCache.swapFeeModule) != address(0)
-            ? swapCache.swapFeeModule.getSwapFeeInBips(
+
+        SwapFeeModuleData memory swapFeeModuleData;
+
+        if (address(swapCache.swapFeeModule) != address(0)) {
+            swapFeeModuleData = swapCache.swapFeeModule.getSwapFeeInBips(
                 _swapParams.isZeroToOne,
                 _swapParams.amountIn,
                 msg.sender,
                 _swapParams.swapContext.swapFeeModuleContext
-            )
-            : SwapFeeModuleData({ feeInBips: defaultSwapFeeBips, internalContext: new bytes(0) });
-
-        if (swapFeeModuleData.feeInBips > _MAX_SWAP_FEE_BIPS) {
-            revert SovereignPool__swap_excessiveSwapFee();
+            );
+            if (swapFeeModuleData.feeInBips > _MAX_SWAP_FEE_BIPS) {
+                revert SovereignPool__swap_excessiveSwapFee();
+            }
+        } else {
+            swapFeeModuleData = SwapFeeModuleData({ feeInBips: defaultSwapFeeBips, internalContext: new bytes(0) });
         }
 
         // Since we do not yet know how much of `amountIn` will be filled,
@@ -737,14 +744,19 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
 
         // If amountOut is 0, we do not transfer any input token
         if (amountOut == 0) {
-            return (0, 0);
+            revert SovereignPool__swap_zeroAmountOut();
         }
 
         // Calculate the actual swap fee to be charged in input token (`effectiveFee`),
         // now that we know the tokenIn amount filled
         uint256 effectiveFee;
         if (liquidityQuote.amountInFilled != swapCache.amountInWithoutFee) {
-            effectiveFee = Math.mulDiv(liquidityQuote.amountInFilled, swapFeeModuleData.feeInBips, _MAX_SWAP_FEE_BIPS);
+            effectiveFee = Math.mulDiv(
+                liquidityQuote.amountInFilled,
+                swapFeeModuleData.feeInBips,
+                _MAX_SWAP_FEE_BIPS,
+                Math.Rounding.Up
+            );
             amountInUsed = liquidityQuote.amountInFilled + effectiveFee;
         } else {
             // Using above formula in case amountInWithoutFee == amountInFilled introduces rounding errors
@@ -769,8 +781,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
         if (
             address(_sovereignOracleModule) != address(0) &&
             _swapParams.swapTokenOut == address(swapCache.tokenOutPool) &&
-            amountInUsed > 0 &&
-            amountOut > 0
+            amountInUsed > 0
         ) {
             _sovereignOracleModule.writeOracleUpdate(_swapParams.isZeroToOne, amountInUsed, effectiveFee, amountOut);
         }
@@ -821,12 +832,12 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
             revert SovereignPool__depositLiquidity_zeroTotalDepositAmount();
         }
 
-        uint256 token0PreBalance = _token0.balanceOf(address(this));
-        uint256 token1PreBalance = _token1.balanceOf(address(this));
-
         if (address(_verifierModule) != address(0)) {
             _verifyPermission(_sender, _verificationContext, uint8(AccessType.DEPOSIT));
         }
+
+        uint256 token0PreBalance = _token0.balanceOf(address(this));
+        uint256 token1PreBalance = _token1.balanceOf(address(this));
 
         ISovereignALM(msg.sender).onDepositLiquidityCallback(_amount0, _amount1, _depositData);
 
@@ -847,8 +858,10 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
             } else {
                 if (amount0Deposited != _amount0) revert SovereignPool__depositLiquidity_insufficientToken0Amount();
 
-                if (amount0Deposited > 0) _reserve0 += amount0Deposited;
+                _reserve0 += amount0Deposited;
             }
+        } else if (amount0Deposited > 0) {
+            revert SovereignPool__depositLiquidity_incorrectTokenAmount();
         }
 
         // Post-deposit checks for token1
@@ -865,8 +878,10 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
             } else {
                 if (amount1Deposited != _amount1) revert SovereignPool__depositLiquidity_insufficientToken1Amount();
 
-                if (amount1Deposited > 0) _reserve1 += amount1Deposited;
+                _reserve1 += amount1Deposited;
             }
+        } else if (amount1Deposited > 0) {
+            revert SovereignPool__depositLiquidity_incorrectTokenAmount();
         }
 
         emit DepositLiquidity(amount0Deposited, amount1Deposited);
