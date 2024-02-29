@@ -389,6 +389,12 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
             abi.encode(2, amount0Deposit, amount1Deposit - 1)
         );
 
+        vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_incorrectTokenAmount.selector);
+        pool.depositLiquidity(0, 1, USER, new bytes(0), abi.encode(0, 1, 1));
+
+        vm.expectRevert(SovereignPool.SovereignPool__depositLiquidity_incorrectTokenAmount.selector);
+        pool.depositLiquidity(1, 0, USER, new bytes(0), abi.encode(0, 1, 1));
+
         // Should work correctly.
         (uint256 amount0, uint256 amount1) = pool.depositLiquidity(
             amount0Deposit,
