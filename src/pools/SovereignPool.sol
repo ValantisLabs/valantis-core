@@ -916,6 +916,8 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
             revert SovereignPool__withdrawLiquidity_invalidRecipient();
         }
 
+        // We disable withdrawals,
+        // since reserves are not meant to be stored in the pool
         if (sovereignVault != address(this)) revert SovereignPool__withdrawLiquidity_withdrawDisabled();
 
         if (address(_verifierModule) != address(0)) {
