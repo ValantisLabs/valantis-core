@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.19;
 
+import { console } from 'forge-std/console.sol';
 import { Math } from 'lib/openzeppelin-contracts/contracts/utils/math/Math.sol';
 import { IERC20 } from 'lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol';
 
@@ -174,6 +175,12 @@ contract SovereignPoolFuzz is SovereignPoolBase {
 
         _setReservesForPool(fuzzParams.reserve0, fuzzParams.reserve1);
 
+        if (pool.sovereignVault() != address(pool)) {
+            vm.expectRevert(SovereignPool.SovereignPool__withdrawLiquidity_withdrawDisabled.selector);
+            pool.withdrawLiquidity(fuzzParams.amount0, fuzzParams.amount1, USER, USER, abi.encode(false));
+            return;
+        }
+
         if (pool.verifierModule() != address(0)) {
             vm.expectRevert(
                 abi.encodeWithSelector(
@@ -196,17 +203,6 @@ contract SovereignPoolFuzz is SovereignPoolBase {
         } else if (pool.sovereignVault() == address(pool) && fuzzParams.amount1 > preReserve1) {
             isRevert = true;
             vm.expectRevert(SovereignPool.SovereignPool__withdrawLiquidity_insufficientReserve1.selector);
-        } else if (pool.sovereignVault() != address(pool)) {
-            _setupBalanceForUser(address(pool), address(token0), fuzzParams.amount0);
-            _setupBalanceForUser(address(pool), address(token1), fuzzParams.amount1);
-
-            if (!pool.isToken0Rebase() && fuzzParams.amount0 > 0) {
-                isRevert = true;
-                vm.expectRevert(SovereignPool.SovereignPool__withdrawLiquidity_insufficientReserve0.selector);
-            } else if (!pool.isToken1Rebase() && fuzzParams.amount1 > 0) {
-                isRevert = true;
-                vm.expectRevert(SovereignPool.SovereignPool__withdrawLiquidity_insufficientReserve1.selector);
-            }
         }
 
         pool.withdrawLiquidity(fuzzParams.amount0, fuzzParams.amount1, USER, USER, abi.encode(true));
@@ -374,7 +370,7 @@ contract SovereignPoolFuzz is SovereignPoolBase {
                 Math.mulDiv(fuzzParams.amountInFilled, pool.defaultSwapFeeBips(), 1e4, Math.Rounding.Up);
 
         if (swapParams.isSwapCallback) {
-            swapParams.swapContext.swapCallbackContext = abi.encode(pool.sovereignVault(), amountInTransferred);
+            swapParams.swapContext.swapCallbackContext = abi.encode(pool.sovereignVault(), amountInTransferred, 0);
         }
 
         if (!_checkLiquidityQuote(fuzzParams, swapParams.isZeroToOne)) {
@@ -407,9 +403,9 @@ contract SovereignPoolFuzz is SovereignPoolBase {
 
         (uint256 amountInUsed, uint256 amountOut) = pool.swap(swapParams);
 
-        assertEq(amountInUsed, amountInTransferred);
+        assertEq(amountInUsed, amountInTransferred, 'Incorrect amountIn');
 
-        assertEq(amountOut, fuzzParams.amountOut);
+        assertEq(amountOut, fuzzParams.amountOut, 'Incorrect amountOut');
 
         if (pool.sovereignVault() != address(pool)) {
             if (isDifferentTokenOut) {

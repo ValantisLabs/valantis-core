@@ -171,7 +171,25 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         oracle = makeAddr('NEW_ORACLE');
 
         // Check error on trying to update sovereign oracle.
-        vm.expectRevert(SovereignPool.SovereignPool__setSovereignOracle__sovereignOracleAlreadySet.selector);
+        vm.expectRevert(SovereignPool.SovereignPool__setSovereignOracle_sovereignOracleAlreadySet.selector);
+
+        pool.setSovereignOracle(oracle);
+
+        CustomConstructorArgsParams memory customParams = CustomConstructorArgsParams(
+            TokenData(true, 9),
+            TokenData(false, 0),
+            makeAddr('SOVEREIGN_VAULT'),
+            ZERO_ADDRESS,
+            16
+        );
+
+        SovereignPoolConstructorArgs memory args = _generatCustomConstructorArgs(customParams);
+
+        pool = this.deploySovereignPool(protocolFactory, args);
+
+        // Check error on trying to set oracle with sovereign vault
+
+        vm.expectRevert(SovereignPool.SovereignPool__setSovereignOracle_oracleDisabled.selector);
 
         pool.setSovereignOracle(oracle);
     }
@@ -548,6 +566,23 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
 
         assertEq(reserve0, 100);
         assertEq(reserve1, 100);
+
+        // check withdraw liquidity blocked for pool with sovereign vault
+        customArgs = CustomConstructorArgsParams(
+            TokenData(false, 0),
+            TokenData(false, 0),
+            makeAddr('SOVEREIGN_VAULT'),
+            ZERO_ADDRESS,
+            10
+        );
+        pool = this.deploySovereignPool(protocolFactory, _generatCustomConstructorArgs(customArgs));
+
+        _setALMForPool(ALM);
+        _setReserves(amount0 + 100, amount1 + 100);
+
+        vm.expectRevert(SovereignPool.SovereignPool__withdrawLiquidity_withdrawDisabled.selector);
+
+        pool.withdrawLiquidity(amount0, amount1, USER, USER, new bytes(0));
     }
 
     /************************************************
@@ -692,10 +727,10 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         // When we want funds to be transferred through callback.
         swapParams.isSwapCallback = true;
         swapParams.swapContext.externalContext = abi.encode(ALMLiquidityQuote(false, 5e18, 5e18));
-        swapParams.swapContext.swapCallbackContext = abi.encode(pool.sovereignVault(), 5e18 - 1);
+        swapParams.swapContext.swapCallbackContext = abi.encode(pool.sovereignVault(), 5e18, 1);
 
         // Amount transferred in is less than amountIn requested.
-        vm.expectRevert(SovereignPool.SovereignPool___handleTokenInOnSwap_invalidTokenInAmount.selector);
+        vm.expectRevert('ERC20: transfer amount exceeds balance');
         (uint256 amountInUsed, uint256 amountOut) = pool.swap(swapParams);
 
         swapParams.isSwapCallback = false;
@@ -844,6 +879,10 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         _setOracleModule(address(this));
         _setSwapFeeModule(address(this));
 
+        _setReservesForPool(100e18, 100e18);
+
+        _addToContractsToApprove(address(pool));
+
         uint256 snapshot = vm.snapshot();
 
         _setReserves(0, 10e18);
@@ -854,10 +893,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         swapParams.isZeroToOne = true;
         swapParams.isSwapCallback = true;
         swapParams.swapContext.swapFeeModuleContext = abi.encode(100, abi.encode('test'));
-        swapParams.swapContext.swapCallbackContext = abi.encode(
-            pool.sovereignVault(),
-            Math.mulDiv(10e18, 1e4, 1e4 + 100) - 11
-        );
+        swapParams.swapContext.swapCallbackContext = abi.encode(pool.sovereignVault(), 10e18, 11);
 
         swapParams.swapContext.externalContext = abi.encode(
             ALMLiquidityQuote(true, 5e18, Math.mulDiv(10e18, 1e4, 1e4 + 100))
@@ -867,7 +903,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         vm.expectRevert(SovereignPool.SovereignPool___handleTokenInOnSwap_excessiveTokenInErrorOnTransfer.selector);
         pool.swap(swapParams);
 
-        swapParams.swapContext.swapCallbackContext = abi.encode(pool.sovereignVault(), 10e18 - 9);
+        swapParams.swapContext.swapCallbackContext = abi.encode(pool.sovereignVault(), 10e18, 9);
 
         // Checks callback to ALM on swap end.
         vm.expectCall(address(this), abi.encodeWithSelector(ISovereignALM.onSwapCallback.selector, true, 10e18, 5e18));
@@ -916,11 +952,16 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         swapParams.isZeroToOne = false;
         swapParams.isSwapCallback = true;
         swapParams.swapContext.swapFeeModuleContext = abi.encode(100, abi.encode('test'));
-        swapParams.swapContext.swapCallbackContext = abi.encode(pool.sovereignVault(), 10e18 - 9);
+        swapParams.swapContext.swapCallbackContext = abi.encode(pool.sovereignVault(), 10e18, 9);
 
         swapParams.swapContext.externalContext = abi.encode(
             ALMLiquidityQuote(true, 5e18, Math.mulDiv(10e18, 1e4, 1e4 + 100))
         );
+
+        token0.approve(address(pool), 0);
+        token1.approve(address(pool), 0);
+
+        _setupBalanceForUser(address(this), address(token0), 10e18);
 
         (amountInUsed, amountOut) = pool.swap(swapParams);
         assertEq(amountInUsed, 10e18);
