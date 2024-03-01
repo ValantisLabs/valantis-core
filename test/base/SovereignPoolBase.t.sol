@@ -156,11 +156,16 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
     }
 
     function sovereignPoolSwapCallback(address _tokenIn, uint256, bytes calldata _swapCallbackContext) external {
-        (address vault, uint256 amountIn) = abi.decode(_swapCallbackContext, (address, uint256));
+        (address vault, uint256 amountIn, uint256 amountToRemove) = abi.decode(
+            _swapCallbackContext,
+            (address, uint256, uint256)
+        );
 
         _setupBalanceForUser(address(this), _tokenIn, amountIn);
-
-        IERC20(_tokenIn).transfer(vault, amountIn);
+        if (amountToRemove > 0) {
+            vm.prank(vault);
+            IERC20(_tokenIn).transfer(DUMP_ADDRESS, amountToRemove);
+        }
     }
 
     function _generateDefaultConstructorArgs()

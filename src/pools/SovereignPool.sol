@@ -69,7 +69,8 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
     error SovereignPool__getReserves_invalidReservesLength();
     error SovereignPool__setGauge_gaugeAlreadySet();
     error SovereignPool__setPoolManagerFeeBips_excessivePoolManagerFee();
-    error SovereignPool__setSovereignOracle__sovereignOracleAlreadySet();
+    error SovereignPool__setSovereignOracle_oracleDisabled();
+    error SovereignPool__setSovereignOracle_sovereignOracleAlreadySet();
     error SovereignPool__swap_excessiveSwapFee();
     error SovereignPool__swap_expired();
     error SovereignPool__swap_invalidLiquidityQuote();
@@ -79,6 +80,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
     error SovereignPool__swap_invalidSwapTokenOut();
     error SovereignPool__swap_zeroAmountOut();
     error SovereignPool__setSwapFeeModule_timelock();
+    error SovereignPool__withdrawLiquidity_withdrawDisabled();
     error SovereignPool__withdrawLiquidity_insufficientReserve0();
     error SovereignPool__withdrawLiquidity_insufficientReserve1();
     error SovereignPool__withdrawLiquidity_invalidRecipient();
@@ -97,6 +99,11 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
         @dev See docs for a more detailed explanation about how swap fees are applied.
      */
     uint256 private constant _MAX_SWAP_FEE_BIPS = 10_000;
+
+    /**
+        @notice Factor of one or 100% representation in Basis points
+     */
+    uint256 private constant _FACTOR_ONE = 10_000;
 
     /**
         @notice `poolManager` can collect up to 50% of swap fees.
@@ -485,8 +492,10 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
             revert SovereignPool__ZeroAddress();
         }
 
+        if (address(sovereignVault) != address(this)) revert SovereignPool__setSovereignOracle_oracleDisabled();
+
         if (address(_sovereignOracleModule) != address(0)) {
-            revert SovereignPool__setSovereignOracle__sovereignOracleAlreadySet();
+            revert SovereignPool__setSovereignOracle_sovereignOracleAlreadySet();
         }
 
         _sovereignOracleModule = ISovereignOracle(sovereignOracle);
@@ -757,12 +766,8 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
                 _MAX_SWAP_FEE_BIPS,
                 Math.Rounding.Up
             );
-            if (liquidityQuote.amountInFilled + effectiveFee > swapCache.amountInWithoutFee) {
-                amountInUsed = swapCache.amountInWithoutFee;
-                effectiveFee = _swapParams.amountIn - swapCache.amountInWithoutFee;
-            } else {
-                amountInUsed = liquidityQuote.amountInFilled + effectiveFee;
-            }
+
+            amountInUsed = liquidityQuote.amountInFilled + effectiveFee;
         } else {
             // Using above formula in case amountInWithoutFee == amountInFilled introduces rounding errors
             effectiveFee = _swapParams.amountIn - swapCache.amountInWithoutFee;
@@ -911,6 +916,10 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
             revert SovereignPool__withdrawLiquidity_invalidRecipient();
         }
 
+        // We disable withdrawals,
+        // since reserves are not meant to be stored in the pool
+        if (sovereignVault != address(this)) revert SovereignPool__withdrawLiquidity_withdrawDisabled();
+
         if (address(_verifierModule) != address(0)) {
             _verifyPermission(_sender, _verificationContext, uint8(AccessType.WITHDRAW));
         }
@@ -950,7 +959,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
         uint256 _feeProtocol1Bips,
         address _recipient
     ) private returns (uint256 feePoolManager0Received, uint256 feePoolManager1Received) {
-        if (_feeProtocol0Bips > _MAX_SWAP_FEE_BIPS || _feeProtocol1Bips > _MAX_SWAP_FEE_BIPS) {
+        if (_feeProtocol0Bips > _FACTOR_ONE || _feeProtocol1Bips > _FACTOR_ONE) {
             revert SovereignPool___claimPoolManagerFees_invalidProtocolFee();
         }
 
@@ -980,8 +989,8 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
             feePoolManager1Received = fee1ReceivedCache;
         }
 
-        uint256 protocolFee0 = Math.mulDiv(_feeProtocol0Bips, feePoolManager0Received, _MAX_SWAP_FEE_BIPS);
-        uint256 protocolFee1 = Math.mulDiv(_feeProtocol1Bips, feePoolManager1Received, _MAX_SWAP_FEE_BIPS);
+        uint256 protocolFee0 = Math.mulDiv(_feeProtocol0Bips, feePoolManager0Received, _FACTOR_ONE);
+        uint256 protocolFee1 = Math.mulDiv(_feeProtocol1Bips, feePoolManager1Received, _FACTOR_ONE);
 
         feeProtocol0 += protocolFee0;
         feeProtocol1 += protocolFee1;
@@ -1033,9 +1042,9 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
                 amountInUsed,
                 _swapCallbackContext
             );
-        } else {
-            token.safeTransferFrom(msg.sender, sovereignVault, amountInUsed);
         }
+
+        token.safeTransferFrom(msg.sender, sovereignVault, amountInUsed);
 
         uint256 amountInReceived = token.balanceOf(sovereignVault) - preBalance;
 
@@ -1055,7 +1064,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
 
         if (isTokenInRebase && sovereignVault == address(this) && poolManager != address(0)) {
             // We transfer manager fee to `poolManager`
-            uint256 poolManagerFee = Math.mulDiv(effectiveFee, poolManagerFeeBips, _MAX_SWAP_FEE_BIPS);
+            uint256 poolManagerFee = Math.mulDiv(effectiveFee, poolManagerFeeBips, _FACTOR_ONE);
             if (poolManagerFee > 0) {
                 token.safeTransfer(poolManager, poolManagerFee);
             }
@@ -1081,7 +1090,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
     ) private {
         if (isZeroToOne) {
             if (!isToken0Rebase) {
-                uint256 poolManagerFee = Math.mulDiv(effectiveFee, poolManagerFeeBips, _MAX_SWAP_FEE_BIPS);
+                uint256 poolManagerFee = Math.mulDiv(effectiveFee, poolManagerFeeBips, _FACTOR_ONE);
 
                 if (sovereignVault == address(this)) _reserve0 += (amountInUsed - poolManagerFee);
                 if (poolManagerFee > 0) feePoolManager0 += poolManagerFee;
@@ -1096,7 +1105,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
             }
 
             if (!isToken1Rebase) {
-                uint256 poolManagerFee = Math.mulDiv(effectiveFee, poolManagerFeeBips, _MAX_SWAP_FEE_BIPS);
+                uint256 poolManagerFee = Math.mulDiv(effectiveFee, poolManagerFeeBips, _FACTOR_ONE);
 
                 if (sovereignVault == address(this)) _reserve1 += (amountInUsed - poolManagerFee);
                 if (poolManagerFee > 0) feePoolManager1 += poolManagerFee;
