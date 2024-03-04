@@ -62,19 +62,16 @@ contract ConstantSwapFeeModuleConcrete is ConstantSwapFeeModuleBase {
         swapFeeModule.setSwapFeeBips(100);
 
         vm.expectRevert(ConstantSwapFeeModule.ConstantSwapFeeModule__onlyPool.selector);
-        swapFeeModule.getSwapFeeInBips(false, 0, ZERO_ADDRESS, new bytes(0));
-
-        vm.prank(address(pool));
-        SwapFeeModuleData memory feeData = swapFeeModule.getSwapFeeInBips(false, 0, ZERO_ADDRESS, new bytes(0));
-
-        assertEq(feeData.feeInBips, 100);
-        assertEq(feeData.internalContext, new bytes(0));
-
-        vm.expectRevert(ConstantSwapFeeModule.ConstantSwapFeeModule__onlyPool.selector);
         swapFeeModule.getSwapFeeInBips(ZERO_ADDRESS, ZERO_ADDRESS, 0, ZERO_ADDRESS, new bytes(0));
 
         vm.prank(address(pool));
-        feeData = swapFeeModule.getSwapFeeInBips(ZERO_ADDRESS, ZERO_ADDRESS, 0, ZERO_ADDRESS, new bytes(0));
+        SwapFeeModuleData memory feeData = swapFeeModule.getSwapFeeInBips(
+            ZERO_ADDRESS,
+            ZERO_ADDRESS,
+            0,
+            ZERO_ADDRESS,
+            new bytes(0)
+        );
 
         assertEq(feeData.feeInBips, 100);
         assertEq(feeData.internalContext, new bytes(0));

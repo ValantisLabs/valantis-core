@@ -163,7 +163,8 @@ contract UniversalPoolBase is UniversalPoolDeployer, Base {
 
     // swap fee function
     function getSwapFeeInBips(
-        bool,
+        address,
+        address,
         uint256,
         address,
         bytes memory swapFeeModuleContext

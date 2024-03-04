@@ -520,7 +520,8 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
 
         SwapFeeModuleData memory swapFeeModuleData = swapCache.swapFeeModule != address(0)
             ? ISwapFeeModule(swapCache.swapFeeModule).getSwapFeeInBips(
-                _swapParams.isZeroToOne,
+                _swapParams.isZeroToOne ? address(_token0) : address(_token1),
+                _swapParams.isZeroToOne ? address(_token1) : address(_token0),
                 _swapParams.amountIn,
                 msg.sender,
                 _swapParams.swapFeeModuleContext

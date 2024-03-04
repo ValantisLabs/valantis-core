@@ -145,7 +145,8 @@ contract SovereignPoolInvariantTest is InvariantBase, SovereignPoolBase {
         }
 
         SwapFeeModuleData memory swapFeeModuleData = MockSwapFeeModule(pool.swapFeeModule()).getSwapFeeInBips(
-            false,
+            ZERO_ADDRESS,
+            ZERO_ADDRESS,
             0,
             ZERO_ADDRESS,
             new bytes(0)
