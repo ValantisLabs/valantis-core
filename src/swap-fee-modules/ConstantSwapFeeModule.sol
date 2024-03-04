@@ -100,7 +100,23 @@ contract ConstantSwapFeeModule is IConstantSwapFeeModule {
     }
 
     /**
-        @notice Calculate swap fee.
+        @notice Calculate swap fee for Sovereign Pool.
+        @dev Only callable by `pool`.
+        @return swapFeeModuleData Swap Fee Module data. 
+     */
+    function getSwapFeeInBips(
+        address,
+        address,
+        uint256,
+        address,
+        bytes memory
+    ) external view override onlyPool returns (SwapFeeModuleData memory swapFeeModuleData) {
+        swapFeeModuleData.feeInBips = swapFeeBips;
+        swapFeeModuleData.internalContext = new bytes(0);
+    }
+
+    /**
+        @notice Calculate swap fee for Universal Pool.
         @dev Only callable by `pool`.
         @return swapFeeModuleData Swap Fee Module data. 
      */

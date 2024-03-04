@@ -135,7 +135,8 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
 
     // Swap Fee Module function
     function getSwapFeeInBips(
-        bool,
+        address,
+        address,
         uint256,
         address,
         bytes memory data
