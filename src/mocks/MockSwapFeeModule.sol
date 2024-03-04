@@ -37,16 +37,6 @@ contract MockSwapFeeModule is ISwapFeeModule {
         swapFeeModuleData.internalContext = internalContext;
     }
 
-    function getSwapFeeInBips(
-        bool,
-        uint256,
-        address,
-        bytes memory
-    ) external view override returns (SwapFeeModuleData memory swapFeeModuleData) {
-        swapFeeModuleData.feeInBips = swapFeeBips;
-        swapFeeModuleData.internalContext = internalContext;
-    }
-
     function callbackOnSwapEnd(uint256, int24, uint256, uint256, SwapFeeModuleData memory) external override {
         emit LogSwapFeeCallback();
         internalContext = new bytes(0);
