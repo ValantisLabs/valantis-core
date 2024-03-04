@@ -7,6 +7,15 @@ struct SwapFeeModuleData {
 }
 
 interface ISwapFeeModule {
+    // For Sovereign Pool
+    function getSwapFeeInBips(
+        address _tokenIn,
+        address _tokenOut,
+        uint256 _amountIn,
+        address _user,
+        bytes memory _swapFeeModuleContext
+    ) external returns (SwapFeeModuleData memory swapFeeModuleData);
+
     function getSwapFeeInBips(
         bool _isZeroToOne,
         uint256 _amountIn,

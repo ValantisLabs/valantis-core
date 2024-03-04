@@ -702,7 +702,8 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
 
         if (address(swapCache.swapFeeModule) != address(0)) {
             swapFeeModuleData = swapCache.swapFeeModule.getSwapFeeInBips(
-                _swapParams.isZeroToOne,
+                address(swapCache.tokenInPool),
+                address(swapCache.tokenOutPool),
                 _swapParams.amountIn,
                 msg.sender,
                 _swapParams.swapContext.swapFeeModuleContext
