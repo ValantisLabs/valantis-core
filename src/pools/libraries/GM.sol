@@ -93,6 +93,9 @@ library GM {
             if (almStates[almNum].isParticipatingInSwap) {
                 // If participating in swap, ALM reserves are cached from storage again after setupSwap call
                 // Gives ALM opportunity to deposit JIT liquidity
+                // WARNING: ALMs should never deposit into other ALM during setup swap
+                // can lead to unaccounted deposits thus leading to loss of funds for ALM
+
                 if (almStates[almNum].refreshReserves) {
                     almStates[almNum].almReserves = ALMPositions.getALMReserves(
                         almLiquidityQuotePoolInputs.isZeroToOne,
