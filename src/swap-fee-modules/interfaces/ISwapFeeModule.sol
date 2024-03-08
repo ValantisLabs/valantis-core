@@ -30,12 +30,3 @@ interface ISwapFeeModule {
         SwapFeeModuleData memory _swapFeeModuleData
     ) external;
 }
-
-interface ISovereignSwapFeeModule {
-    function callbackOnSwapEnd(
-        uint256 _effectiveFee,
-        uint256 _amountInUsed,
-        uint256 _amountOut,
-        SwapFeeModuleData memory _swapFeeModuleData
-    ) external;
-}

@@ -228,11 +228,6 @@ contract UniversalPoolFuzz is UniversalPoolBase {
         _assertTokenBalance(token1, address(pool), fuzzParams.reserve1);
     }
 
-    /**
-    
-    SwapFuzzParams({ flags: 50, reserves0: 16186057662557104382170385066625530114150205143102272469416942 [1.618e61], reserves1: 0, amountInAndOut: 82995360702426133956012236868228111209696992069940556275343278168864551075839 [8.299e76], amountOutMin: 507404422749896619178565889302211006360461157688255593 [5.074e53], deadline: 111273471457192943058691638916847587234804964678 [1.112e47], tick: 8388607 [8.388e6], limitPriceTick: -1 }
-    
-     */
     function test_swap(SwapFuzzParams memory fuzzParams) public {
         SwapParams memory swapParams;
 
@@ -336,7 +331,7 @@ contract UniversalPoolFuzz is UniversalPoolBase {
                 swapParams.amountIn
             );
         } else {
-            swapParams.swapCallbackContext = abi.encode(swapParams.amountIn);
+            swapParams.swapCallbackContext = abi.encode(true, swapParams.amountIn);
         }
 
         (uint256 amountInUsed, uint256 amountOutActual) = pool.swap(swapParams);

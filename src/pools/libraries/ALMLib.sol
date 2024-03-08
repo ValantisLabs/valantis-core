@@ -95,8 +95,10 @@ library ALMLib {
             revert ALMLib__withdrawLiquidity_insufficientReserves();
         }
 
-        almPosition.reserve0 -= _amount0;
-        almPosition.reserve1 -= _amount1;
+        unchecked {
+            almPosition.reserve0 -= _amount0;
+            almPosition.reserve1 -= _amount1;
+        }
 
         if (_amount0 > 0) {
             _token0.safeTransfer(_recipient, _amount0);
