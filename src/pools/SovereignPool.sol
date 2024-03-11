@@ -1048,9 +1048,9 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
                 amountInUsed,
                 _swapCallbackContext
             );
+        } else {
+            token.safeTransferFrom(msg.sender, sovereignVault, amountInUsed);
         }
-
-        token.safeTransferFrom(msg.sender, sovereignVault, amountInUsed);
 
         uint256 amountInReceived = token.balanceOf(sovereignVault) - preBalance;
 

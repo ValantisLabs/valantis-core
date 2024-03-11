@@ -167,6 +167,7 @@ contract SovereignPoolBase is Base, SovereignPoolDeployer {
             vm.prank(vault);
             IERC20(_tokenIn).transfer(DUMP_ADDRESS, amountToRemove);
         }
+        IERC20(_tokenIn).transfer(vault, amountIn);
     }
 
     function _generateDefaultConstructorArgs()
