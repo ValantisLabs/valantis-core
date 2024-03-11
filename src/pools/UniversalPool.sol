@@ -71,6 +71,10 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
     error UniversalPool__onlyProtocolFactory();
     error UniversalPool__invalidTokenAddresses();
     error UniversalPool__initializeTick();
+    error UniversalPool__poolManagerZeroAddress();
+    error UniversalPool__setGauge_gaugeAlreadySet();
+    error UniversalPool__setGauge_invalidAddress();
+    error UniversalPool__setPoolState_invalidPoolManagerFeeBips();
     error UniversalPool__spotPriceTick_spotPriceTickLocked();
     error UniversalPool__swap_excessiveSwapFee();
     error UniversalPool__swap_expired();
@@ -83,8 +87,6 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
     error UniversalPool__swap_noActiveALMPositions();
     error UniversalPool__swap_zeroAddressRecipient();
     error UniversalPool__swap_zeroAmountOut();
-    error UniversalPool__setGauge_gaugeAlreadySet();
-    error UniversalPool__setGauge_invalidAddress();
 
     /************************************************
      *  CONSTANTS
@@ -181,6 +183,10 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
             revert UniversalPool__invalidTokenAddresses();
         }
 
+        if (_poolManager == address(0)) {
+            revert UniversalPool__poolManagerZeroAddress();
+        }
+
         _token0 = IERC20(_token0Address);
         _token1 = IERC20(_token1Address);
 
@@ -223,7 +229,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         @dev The spotPriceTick view function is locked during a swap to prevent read-only reentrancy.
      */
     function spotPriceTick() external view override returns (int24) {
-        if (_poolLocks.swap != _NOT_ENTERED) {
+        if (_poolLocks.spotPriceTick != _NOT_ENTERED) {
             revert UniversalPool__spotPriceTick_spotPriceTickLocked();
         }
 
@@ -294,6 +300,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         _unlock(Lock.WITHDRAWAL);
         _unlock(Lock.DEPOSIT);
         _unlock(Lock.SWAP);
+        _unlock(Lock.SPOT_PRICE_TICK);
 
         emit InitializeTick(_tick);
     }
@@ -320,7 +327,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         }
         flashToken.safeTransferFrom(address(_receiver), address(this), _amount);
 
-        if (flashToken.balanceOf(address(this)) < poolPreBalance) {
+        if (flashToken.balanceOf(address(this)) != poolPreBalance) {
             revert ValantisPool__flashLoan_flashLoanNotRepaid();
         }
 
@@ -372,7 +379,10 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
     function setPoolState(PoolState memory _newState) external override nonReentrantGlobal onlyPoolManager {
         if (_newState.poolManager == address(0)) {
             _state.claimPoolManagerFees(_token0, _token1, 0, 0);
-            _newState.poolManagerFeeBips = 0;
+
+            if (_newState.poolManagerFeeBips != 0) {
+                revert UniversalPool__setPoolState_invalidPoolManagerFeeBips();
+            }
         }
         _state.setPoolState(_newState);
     }
@@ -511,6 +521,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         // Deposits are allowed for JIT liquidity
         _lock(Lock.SWAP);
         _lock(Lock.WITHDRAWAL);
+        _lock(Lock.SPOT_PRICE_TICK);
 
         (
             SwapCache memory swapCache,
@@ -577,12 +588,12 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         amountInUsed = (swapCache.amountInMinusFee - swapCache.amountInRemaining) + swapCache.effectiveFee;
         amountOut = swapCache.amountOutFilled;
 
-        if (amountInUsed > 0 && amountOut == 0) {
-            revert UniversalPool__swap_zeroAmountOut();
-        }
-
-        // Claim amountInFilled + effectiveFee from sender
         if (amountInUsed > 0) {
+            if (amountOut == 0) {
+                revert UniversalPool__swap_zeroAmountOut();
+            }
+
+            // Claim amountInFilled + effectiveFee from sender
             IERC20 tokenInInterface = _swapParams.isZeroToOne ? _token0 : _token1;
             uint256 tokenInPreBalance = tokenInInterface.balanceOf(address(this));
 
@@ -596,7 +607,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
                 tokenInInterface.safeTransferFrom(msg.sender, address(this), amountInUsed);
             }
 
-            if (tokenInInterface.balanceOf(address(this)) - tokenInPreBalance < amountInUsed) {
+            if (tokenInInterface.balanceOf(address(this)) != amountInUsed + tokenInPreBalance) {
                 revert UniversalPool__swap_insufficientAmountIn();
             }
         }
@@ -632,6 +643,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         // ALMs can now withdraw
         _unlock(Lock.WITHDRAWAL);
         _unlock(Lock.DEPOSIT);
+        _unlock(Lock.SPOT_PRICE_TICK);
 
         // Update ALM positions internal state
         almStates.updateALMPositionsOnSwapEnd(_swapParams, swapCache);

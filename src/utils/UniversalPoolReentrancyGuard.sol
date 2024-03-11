@@ -102,8 +102,10 @@ abstract contract UniversalPoolReentrancyGuard {
             return _poolLocks.withdrawals;
         } else if (Lock.DEPOSIT == lockType) {
             return _poolLocks.deposit;
-        } else {
+        } else if (Lock.SWAP == lockType) {
             return _poolLocks.swap;
+        } else {
+            return _poolLocks.spotPriceTick;
         }
     }
 
@@ -112,8 +114,10 @@ abstract contract UniversalPoolReentrancyGuard {
             _poolLocks.withdrawals = value;
         } else if (Lock.DEPOSIT == lockType) {
             _poolLocks.deposit = value;
-        } else {
+        } else if (Lock.SWAP == lockType) {
             _poolLocks.swap = value;
+        } else {
+            _poolLocks.spotPriceTick = value;
         }
     }
 }

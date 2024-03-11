@@ -76,6 +76,12 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         // not possible to get error with yul create2 deployment so direct deployment
         new UniversalPool(address(token0), address(token0), address(protocolFactory), POOL_MANAGER, 0);
 
+        vm.expectRevert(UniversalPool.UniversalPool__poolManagerZeroAddress.selector);
+
+        // should error when pool manager address is zero address
+        // not possible to get error with yul create2 deployment so direct deployment
+        new UniversalPool(address(token0), address(token1), address(protocolFactory), ZERO_ADDRESS, 0);
+
         address newPoolManager = _randomUser();
 
         // check with different pool manager
@@ -126,12 +132,12 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         vm.expectRevert(UniversalPool.UniversalPool__initializeTick.selector);
         pool.initializeTick(tick);
 
-        _lockPool(2);
+        _lockPool(3);
 
         vm.expectRevert(UniversalPool.UniversalPool__spotPriceTick_spotPriceTickLocked.selector);
         pool.spotPriceTick();
 
-        _unlockPool(2);
+        _unlockPool(3);
 
         assertEq(pool.spotPriceTick(), tick);
 
@@ -255,8 +261,13 @@ contract UniversalPoolConcrete is UniversalPoolBase {
 
         _setupBalanceForUser(address(pool), address(token0), 10e18);
         _setupBalanceForUser(address(pool), address(token1), 20e18);
-        vm.prank(POOL_MANAGER);
 
+        vm.expectRevert(UniversalPool.UniversalPool__setPoolState_invalidPoolManagerFeeBips.selector);
+        vm.prank(POOL_MANAGER);
+        pool.setPoolState(defaultState);
+
+        defaultState.poolManagerFeeBips = 0;
+        vm.prank(POOL_MANAGER);
         vm.expectCall(address(token0), abi.encodeWithSelector(IERC20.transfer.selector, POOL_MANAGER, 10e18));
         vm.expectCall(address(token1), abi.encodeWithSelector(IERC20.transfer.selector, POOL_MANAGER, 20e18));
 
@@ -622,12 +633,12 @@ contract UniversalPoolConcrete is UniversalPoolBase {
 
         // with call back
         swapParams.isSwapCallback = true;
-        swapParams.swapCallbackContext = abi.encode(amountInExpected - 1);
+        swapParams.swapCallbackContext = abi.encode(false, amountInExpected - 1);
 
         vm.expectRevert(UniversalPool.UniversalPool__swap_insufficientAmountIn.selector);
         pool.swap(swapParams);
 
-        swapParams.swapCallbackContext = abi.encode(amountInExpected + 1);
+        swapParams.swapCallbackContext = abi.encode(false, amountInExpected);
 
         vm.expectCall(address(token0), abi.encodeWithSelector(IERC20.transfer.selector, RECIPIENT, 40e18));
         (amountInUsed, amountOut) = pool.swap(swapParams);

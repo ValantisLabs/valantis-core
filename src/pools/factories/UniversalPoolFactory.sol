@@ -28,7 +28,7 @@ contract UniversalPoolFactory is IPoolDeployer {
         assembly {
             deployment := create2(0, add(bytecode, 0x20), mload(bytecode), salt)
 
-            if iszero(extcodesize(deployment)) {
+            if iszero(deployment) {
                 revert(0, 0)
             }
         }

@@ -68,6 +68,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
     error SovereignPool__depositLiquidity_zeroTotalDepositAmount();
     error SovereignPool__getReserves_invalidReservesLength();
     error SovereignPool__setGauge_gaugeAlreadySet();
+    error SovereignPool__setGauge_invalidAddress();
     error SovereignPool__setPoolManagerFeeBips_excessivePoolManagerFee();
     error SovereignPool__setSovereignOracle_oracleDisabled();
     error SovereignPool__setSovereignOracle_sovereignOracleAlreadySet();
@@ -511,6 +512,10 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
     function setGauge(address _gauge) external override onlyProtocolFactory nonReentrant {
         if (gauge != address(0)) {
             revert SovereignPool__setGauge_gaugeAlreadySet();
+        }
+
+        if (_gauge == address(0)) {
+            revert SovereignPool__setGauge_invalidAddress();
         }
 
         gauge = _gauge;

@@ -132,7 +132,6 @@ library EnumerableALMMap {
                 if (metaALMPointer == almLength) {
                     // No Meta ALMs in the set, directly push the Base ALM to the end of the array
                     _set._activeALMs.push(_alm);
-                    _set._indexes[_alm.slot0.almAddress] = almLength + 1;
                 } else {
                     // Push the first Meta ALM, to the end of the array
                     _set._activeALMs.push(_set._activeALMs[metaALMPointer]);
@@ -140,8 +139,9 @@ library EnumerableALMMap {
 
                     // Replace the _metaALMPointer index with the new Base ALM
                     _set._activeALMs[metaALMPointer] = _alm;
-                    _set._indexes[_alm.slot0.almAddress] = metaALMPointer + 1;
                 }
+
+                _set._indexes[_alm.slot0.almAddress] = metaALMPointer + 1;
 
                 // Each time base ALM is added, meta ALM index increases
                 ++_set._metaALMPointer;

@@ -103,12 +103,12 @@ contract UniversalPoolBase is UniversalPoolDeployer, Base {
     }
 
     // swap callback
-    function universalPoolSwapCallback(address tokenIn, uint256, bytes calldata swapCallbackContext) external {
-        uint256 amountToTransfer = abi.decode(swapCallbackContext, (uint256));
+    function universalPoolSwapCallback(address tokenIn, uint256 amount, bytes calldata swapCallbackContext) external {
+        (bool fullAmountIn, uint256 amountToTransfer) = abi.decode(swapCallbackContext, (bool, uint256));
 
-        _setupBalanceForUser(address(this), tokenIn, amountToTransfer);
+        _setupBalanceForUser(address(this), tokenIn, fullAmountIn ? amount : amountToTransfer);
 
-        IERC20(tokenIn).safeTransfer(msg.sender, amountToTransfer);
+        IERC20(tokenIn).safeTransfer(msg.sender, fullAmountIn ? amount : amountToTransfer);
     }
 
     // Flashloan Callback

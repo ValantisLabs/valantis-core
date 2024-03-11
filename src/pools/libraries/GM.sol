@@ -49,6 +49,11 @@ library GM {
      */
     uint256 private constant MAX_SWAP_FEE_BIPS = 1e4;
 
+    /**
+        @notice Factor of one or 100% representation in Basis points
+     */
+    uint256 private constant FACTOR_ONE = 10_000;
+
     /************************************************
      *  INTERNAL FUNCTIONS
      ***********************************************/
@@ -88,6 +93,9 @@ library GM {
             if (almStates[almNum].isParticipatingInSwap) {
                 // If participating in swap, ALM reserves are cached from storage again after setupSwap call
                 // Gives ALM opportunity to deposit JIT liquidity
+                // WARNING: ALMs should never deposit into other ALM during setup swap
+                // can lead to unaccounted deposits thus leading to loss of funds for ALM
+
                 if (almStates[almNum].refreshReserves) {
                     almStates[almNum].almReserves = ALMPositions.getALMReserves(
                         almLiquidityQuotePoolInputs.isZeroToOne,
@@ -246,11 +254,7 @@ library GM {
         SwapCache memory swapCache
     ) internal {
         // Calculate ALM Fee
-        uint256 totalALMFee = Math.mulDiv(
-            swapCache.effectiveFee,
-            MAX_SWAP_FEE_BIPS - state.poolManagerFeeBips,
-            MAX_SWAP_FEE_BIPS
-        );
+        uint256 totalALMFee = Math.mulDiv(swapCache.effectiveFee, FACTOR_ONE - state.poolManagerFeeBips, FACTOR_ONE);
         uint256 totalMetaALMSharedFee;
 
         // Set Pool Manager Fee
@@ -276,7 +280,7 @@ library GM {
                         swapCache.amountOutFilled
                     );
 
-                    uint256 sharedFee = Math.mulDiv(fee, almStates[i].almSlot0.metaALMFeeShare, MAX_SWAP_FEE_BIPS);
+                    uint256 sharedFee = Math.mulDiv(fee, almStates[i].almSlot0.metaALMFeeShare, FACTOR_ONE);
                     almFeeEarned = fee - sharedFee;
                     totalMetaALMSharedFee += sharedFee;
                 } else {

@@ -4,7 +4,8 @@ pragma solidity 0.8.19;
 enum Lock {
     WITHDRAWAL,
     DEPOSIT,
-    SWAP
+    SWAP,
+    SPOT_PRICE_TICK
 }
 
 struct PoolLocks {
@@ -25,4 +26,8 @@ struct PoolLocks {
         @notice Only locks the swap function
     */
     uint8 swap;
+    /**
+        @notice Only locks the spotPriceTick function
+    */
+    uint8 spotPriceTick;
 }

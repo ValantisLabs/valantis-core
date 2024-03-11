@@ -12,13 +12,22 @@ import {
 } from 'src/pools/structs/SovereignPoolStructs.sol';
 import { IFlashBorrower } from 'src/pools/interfaces/IFlashBorrower.sol';
 import { IValantisPool } from 'src/pools/interfaces/IValantisPool.sol';
-import { ISovereignSwapFeeModule, SwapFeeModuleData } from 'src/swap-fee-modules/interfaces/ISwapFeeModule.sol';
+import { SwapFeeModuleData } from 'src/swap-fee-modules/interfaces/ISwapFeeModule.sol';
 import { ISovereignVaultMinimal } from 'src/pools/interfaces/ISovereignVaultMinimal.sol';
 import { ISovereignALM } from 'src/ALM/interfaces/ISovereignALM.sol';
 import { ISovereignOracle } from 'src/oracles/interfaces/ISovereignOracle.sol';
 
 import { SovereignPoolBase } from 'test/base/SovereignPoolBase.t.sol';
 import { MockSovereignVaultHelper } from 'test/helpers/MockSovereignVaultHelper.sol';
+
+interface ISovereignSwapFeeModule {
+    function callbackOnSwapEnd(
+        uint256 _effectiveFee,
+        uint256 _amountInUsed,
+        uint256 _amountOut,
+        SwapFeeModuleData memory _swapFeeModuleData
+    ) external;
+}
 
 contract SovereignPoolConcreteTest is SovereignPoolBase {
     /************************************************
@@ -201,6 +210,11 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         vm.expectRevert(SovereignPool.SovereignPool__onlyProtocolFactory.selector);
 
         pool.setGauge(gauge);
+
+        vm.expectRevert(SovereignPool.SovereignPool__setGauge_invalidAddress.selector);
+        vm.startPrank(address(protocolFactory));
+
+        pool.setGauge(ZERO_ADDRESS);
 
         vm.startPrank(address(protocolFactory));
 
