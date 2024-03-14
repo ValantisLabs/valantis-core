@@ -66,7 +66,6 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
      ***********************************************/
 
     error UniversalPool__onlyPoolManager();
-    error UniversalPool__onlyActiveALM();
     error UniversalPool__onlyGauge();
     error UniversalPool__onlyProtocolFactory();
     error UniversalPool__invalidTokenAddresses();
@@ -160,11 +159,6 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
 
     modifier onlyPoolManager() {
         _onlyPoolManager();
-        _;
-    }
-
-    modifier onlyActiveALM() {
-        _onlyActiveALM();
         _;
     }
 
@@ -288,7 +282,6 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
      */
     function initializeTick(int24 _tick) external override onlyPoolManager {
         // All locks are initially set to 0
-        // @audit initializeTick should only be allowed once
         if (
             _poolLocks.withdrawals != 0 || _tick < PriceTickMath.MIN_PRICE_TICK || _tick > PriceTickMath.MAX_PRICE_TICK
         ) {
@@ -474,7 +467,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         uint256 _amount0,
         uint256 _amount1,
         bytes memory _depositData
-    ) external override nonReentrant(Lock.DEPOSIT) onlyActiveALM {
+    ) external override nonReentrant(Lock.DEPOSIT) {
         _ALMPositions.depositLiquidity(_token0, _token1, _amount0, _amount1, _depositData);
     }
 
@@ -515,8 +508,6 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
             revert UniversalPool__swap_expired();
         }
 
-        // @audit : Check for multi function reentrancy in swap function
-
         // All withdrawals are paused as soon as swap function starts
         // Deposits are allowed for JIT liquidity
         _lock(Lock.SWAP);
@@ -529,18 +520,21 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
             UnderlyingALMQuote[] memory baseALMQuotes
         ) = _processSwapParams(_swapParams);
 
-        SwapFeeModuleData memory swapFeeModuleData = swapCache.swapFeeModule != address(0)
-            ? ISwapFeeModule(swapCache.swapFeeModule).getSwapFeeInBips(
+        SwapFeeModuleData memory swapFeeModuleData;
+
+        if (address(swapCache.swapFeeModule) != address(0)) {
+            swapFeeModuleData = ISwapFeeModule(swapCache.swapFeeModule).getSwapFeeInBips(
                 _swapParams.isZeroToOne ? address(_token0) : address(_token1),
                 _swapParams.isZeroToOne ? address(_token1) : address(_token0),
                 _swapParams.amountIn,
                 msg.sender,
                 _swapParams.swapFeeModuleContext
-            )
-            : SwapFeeModuleData(defaultSwapFeeBips, new bytes(0));
-
-        if (swapFeeModuleData.feeInBips > MAX_SWAP_FEE_BIPS) {
-            revert UniversalPool__swap_excessiveSwapFee();
+            );
+            if (swapFeeModuleData.feeInBips > MAX_SWAP_FEE_BIPS) {
+                revert UniversalPool__swap_excessiveSwapFee();
+            }
+        } else {
+            swapFeeModuleData = SwapFeeModuleData({ feeInBips: defaultSwapFeeBips, internalContext: new bytes(0) });
         }
 
         // Get initial swap amounts
@@ -567,7 +561,6 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         }
 
         // Update Spot Price Tick
-        // TODO: Check if it costs the same gas without the if statement.
         if (swapCache.spotPriceTick != swapCache.spotPriceTickStart) {
             _spotPriceTick = swapCache.spotPriceTick;
         }
@@ -577,44 +570,45 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         // so they can access the ground truth updated state in this pool.
 
         // Calculate effectiveFee using the fraction of tokenIn that got filled
-        swapCache.effectiveFee = Math.mulDiv(
-            (swapCache.amountInMinusFee - swapCache.amountInRemaining),
-            swapFeeModuleData.feeInBips,
-            MAX_SWAP_FEE_BIPS
-        );
+        if (swapCache.amountInRemaining != 0) {
+            swapCache.effectiveFee = Math.mulDiv(
+                (swapCache.amountInMinusFee - swapCache.amountInRemaining),
+                swapFeeModuleData.feeInBips,
+                MAX_SWAP_FEE_BIPS,
+                Math.Rounding.Up
+            );
+        } else {
+            swapCache.effectiveFee = _swapParams.amountIn - swapCache.amountInMinusFee;
+        }
 
         almStates.updatePoolState(_ALMPositions, _state, _swapParams, swapCache);
 
         amountInUsed = (swapCache.amountInMinusFee - swapCache.amountInRemaining) + swapCache.effectiveFee;
         amountOut = swapCache.amountOutFilled;
 
-        if (amountInUsed > 0) {
-            if (amountOut == 0) {
-                revert UniversalPool__swap_zeroAmountOut();
-            }
-
-            // Claim amountInFilled + effectiveFee from sender
-            IERC20 tokenInInterface = _swapParams.isZeroToOne ? _token0 : _token1;
-            uint256 tokenInPreBalance = tokenInInterface.balanceOf(address(this));
-
-            if (_swapParams.isSwapCallback) {
-                IUniversalPoolSwapCallback(msg.sender).universalPoolSwapCallback(
-                    address(tokenInInterface),
-                    amountInUsed,
-                    _swapParams.swapCallbackContext
-                );
-            } else {
-                tokenInInterface.safeTransferFrom(msg.sender, address(this), amountInUsed);
-            }
-
-            if (tokenInInterface.balanceOf(address(this)) != amountInUsed + tokenInPreBalance) {
-                revert UniversalPool__swap_insufficientAmountIn();
-            }
+        if (amountOut == 0 || amountInUsed == 0) {
+            revert UniversalPool__swap_zeroAmountOut();
         }
 
-        if (amountOut > 0) {
-            (_swapParams.isZeroToOne ? _token1 : _token0).safeTransfer(_swapParams.recipient, amountOut);
+        // Claim amountInFilled + effectiveFee from sender
+        IERC20 tokenInInterface = _swapParams.isZeroToOne ? _token0 : _token1;
+        uint256 tokenInPreBalance = tokenInInterface.balanceOf(address(this));
+
+        if (_swapParams.isSwapCallback) {
+            IUniversalPoolSwapCallback(msg.sender).universalPoolSwapCallback(
+                address(tokenInInterface),
+                amountInUsed,
+                _swapParams.swapCallbackContext
+            );
+        } else {
+            tokenInInterface.safeTransferFrom(msg.sender, address(this), amountInUsed);
         }
+
+        if (tokenInInterface.balanceOf(address(this)) != amountInUsed + tokenInPreBalance) {
+            revert UniversalPool__swap_insufficientAmountIn();
+        }
+
+        (_swapParams.isZeroToOne ? _token1 : _token0).safeTransfer(_swapParams.recipient, amountOut);
 
         // Update state for Swap fee module
         if (swapFeeModuleData.internalContext.length != 0) {
@@ -766,15 +760,6 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
     function _onlyPoolManager() private view {
         if (msg.sender != _state.poolManager) {
             revert UniversalPool__onlyPoolManager();
-        }
-    }
-
-    /**
-        @notice Helper function for the onlyActiveALM modifier, to reduce bytecode size.
-     */
-    function _onlyActiveALM() private view {
-        if (!_ALMPositions.isALMActive(msg.sender)) {
-            revert UniversalPool__onlyActiveALM();
         }
     }
 }

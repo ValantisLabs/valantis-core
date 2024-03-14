@@ -11,8 +11,6 @@ import { EnumerableALMMap } from '../../libraries/EnumerableALMMap.sol';
 /**
   @title Helper libary to offload logic from Valantis Universal Pool contract, to save bytecode size.
   @notice Functions - 
-        * depositLiquidity
-        * withdrawLiquidity
         * claimPoolManagerFees
         * claimProtocolFees
         * setPoolState
