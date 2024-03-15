@@ -176,7 +176,7 @@ contract EnumerableALMMapTest is Test {
         harness.remove(address(uint160(removeIndex + 1)));
 
         // Can not add removed ALM again
-        vm.expectRevert(EnumerableALMMap.EnumerableALMMap__addALMPosition_almAlreadyExist.selector);
+        vm.expectRevert(EnumerableALMMap.EnumerableALMMap__addALMPosition_almAlreadyExists.selector);
         harness.add(ALMPosition(Slot0(false, true, true, 0, address(uint160(removeIndex + 1))), 0, 0, 0, removeIndex));
     }
 

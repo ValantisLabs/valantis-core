@@ -51,7 +51,7 @@ library EnumerableALMMap {
      ***********************************************/
 
     error EnumerableALMMap__addALMPosition();
-    error EnumerableALMMap__addALMPosition_almAlreadyExist();
+    error EnumerableALMMap__addALMPosition_almAlreadyExists();
     error EnumerableALMMap__almNotFound();
     error EnumerableALMMap__baseALMHasPositiveFeeShare();
     error EnumerableALMMap__highMetaALMFeeShare();
@@ -154,7 +154,7 @@ library EnumerableALMMap {
 
             emit ALMAdded(_alm.slot0.almAddress);
         } else {
-            revert EnumerableALMMap__addALMPosition_almAlreadyExist();
+            revert EnumerableALMMap__addALMPosition_almAlreadyExists();
         }
     }
 
