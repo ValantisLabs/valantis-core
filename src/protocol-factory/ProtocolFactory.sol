@@ -35,7 +35,6 @@ contract ProtocolFactory is IProtocolFactory {
     error ProtocolFactory__onlyProtocolDeployer();
     error ProtocolFactory__onlyProtocolManager();
     error ProtocolFactory__invalidALMFactory();
-    error ProtocolFactory__invalidBlockTime();
     error ProtocolFactory__invalidBytecode();
     error ProtocolFactory__invalidSovereignOracleModuleFactory();
     error ProtocolFactory__invalidSovereignPool();
@@ -67,9 +66,6 @@ contract ProtocolFactory is IProtocolFactory {
      ***********************************************/
 
     address public immutable protocolDeployer;
-
-    // solhint-disable-next-line var-name-mixedcase
-    uint256 public immutable BLOCK_TIME;
 
     /************************************************
      *  STORAGE
@@ -223,7 +219,7 @@ contract ProtocolFactory is IProtocolFactory {
      *  CONSTRUCTOR
      ***********************************************/
 
-    constructor(address _protocolDeployer, uint32 _blockTime) {
+    constructor(address _protocolDeployer) {
         if (_protocolDeployer == address(0)) {
             revert ProtocolFactory__zeroAddress();
         }
@@ -231,11 +227,6 @@ contract ProtocolFactory is IProtocolFactory {
         // Protocol manager initially set as protocol deployer.
         protocolManager = _protocolDeployer;
         protocolDeployer = _protocolDeployer;
-
-        if (_blockTime == 0) {
-            revert ProtocolFactory__invalidBlockTime();
-        }
-        BLOCK_TIME = uint256(_blockTime);
     }
 
     /************************************************

@@ -36,9 +36,6 @@ interface IProtocolFactory {
 
     function protocolDeployer() external view returns (address);
 
-    // solhint-disable-next-line func-name-mixedcase
-    function BLOCK_TIME() external view returns (uint256);
-
     function almFactories(address _almPosition) external view returns (address);
 
     function swapFeeModules(address _pool) external view returns (address);

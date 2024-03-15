@@ -69,9 +69,9 @@ contract ProtocolFactoryBase is
 
         if (!isDeployment) return makeAddr('NO_CONTRACT_DEPLOYMENT');
 
-        (address protocolDeployer, uint32 blockTime) = abi.decode(_constructorArgs, (address, uint32));
+        address protocolDeployer = abi.decode(_constructorArgs, (address));
 
-        deployment = address(new ProtocolFactory{ salt: _salt }(protocolDeployer, blockTime));
+        deployment = address(new ProtocolFactory{ salt: _salt }(protocolDeployer));
     }
 
     function _setSovereignPoolFactory() internal {
