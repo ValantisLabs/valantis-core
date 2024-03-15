@@ -119,11 +119,11 @@ contract ConstantSwapFeeModule is IConstantSwapFeeModule {
         @notice Callback after the swap is ended for Universal Pool.
         @dev Not applicable for this Swap Fee Module. 
      */
-    function callbackOnSwapEnd(uint256, int24, uint256, uint256, SwapFeeModuleData memory) external override onlyPool {}
+    function callbackOnSwapEnd(uint256, int24, uint256, uint256, SwapFeeModuleData memory) external override {}
 
     /**
         @notice Callback after the swap is ended for SovereignPool
         @dev Not applicable for this Swap Fee Module. 
      */
-    function callbackOnSwapEnd(uint256, uint256, uint256, SwapFeeModuleData memory) external override onlyPool {}
+    function callbackOnSwapEnd(uint256, uint256, uint256, SwapFeeModuleData memory) external override {}
 }
