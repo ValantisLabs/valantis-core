@@ -539,7 +539,9 @@ contract ProtocolFactory is IProtocolFactory {
         }
 
         uint256 swapFeeModuleNonceCache = swapFeeModuleNonce;
-        bytes32 salt = keccak256(abi.encode(_pool, _swapFeeModuleFactory, swapFeeModuleNonceCache));
+        bytes32 salt = keccak256(
+            abi.encode(msg.sender, _constructorArgs, _pool, _swapFeeModuleFactory, swapFeeModuleNonceCache)
+        );
         swapFeeModuleNonce = swapFeeModuleNonceCache + 1;
 
         swapFeeModule = _deployViaFactory(salt, _swapFeeModuleFactory, _constructorArgs);
@@ -572,7 +574,15 @@ contract ProtocolFactory is IProtocolFactory {
         }
 
         uint256 universalOracleModuleNonceCache = universalOracleModuleNonce;
-        bytes32 salt = keccak256(abi.encode(_pool, _universalOracleModuleFactory, universalOracleModuleNonceCache));
+        bytes32 salt = keccak256(
+            abi.encode(
+                msg.sender,
+                _constructorArgs,
+                _pool,
+                _universalOracleModuleFactory,
+                universalOracleModuleNonceCache
+            )
+        );
         universalOracleModuleNonce = universalOracleModuleNonceCache + 1;
 
         universalOracleModule = _deployViaFactory(salt, _universalOracleModuleFactory, _constructorArgs);
@@ -604,7 +614,15 @@ contract ProtocolFactory is IProtocolFactory {
         }
 
         uint256 sovereignOracleModuleNonceCache = sovereignOracleModuleNonce;
-        bytes32 salt = keccak256(abi.encode(_pool, _sovereignOracleModuleFactory, sovereignOracleModuleNonceCache));
+        bytes32 salt = keccak256(
+            abi.encode(
+                msg.sender,
+                _constructorArgs,
+                _pool,
+                _sovereignOracleModuleFactory,
+                sovereignOracleModuleNonceCache
+            )
+        );
         sovereignOracleModuleNonce = sovereignOracleModuleNonceCache + 1;
 
         sovereignOracleModule = _deployViaFactory(salt, _sovereignOracleModuleFactory, _constructorArgs);
@@ -944,7 +962,7 @@ contract ProtocolFactory is IProtocolFactory {
         }
 
         uint256 almNonceCache = almNonce;
-        bytes32 salt = keccak256(abi.encode(pool, almFactory, almNonceCache));
+        bytes32 salt = keccak256(abi.encode(msg.sender, constructorArgs, pool, almFactory, almNonceCache));
         almNonce = almNonceCache + 1;
 
         alm = _deployViaFactory(salt, almFactory, constructorArgs);
