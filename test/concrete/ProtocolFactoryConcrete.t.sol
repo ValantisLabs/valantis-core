@@ -14,9 +14,6 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
      ***********************************************/
 
     function test_defaultConstructorArgs() public {
-        // Check default block time is 12 seconds
-        assertEq(protocolFactory.BLOCK_TIME(), 12);
-
         // Check default protocol deployer is this contract
         assertEq(protocolFactory.protocolDeployer(), address(this));
 
@@ -26,21 +23,14 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
 
     function test_customConstructorArgs() public {
         address protocolDeployer = makeAddr('PROTOCOL_DEPLOYER');
-        uint32 blockTime = 1;
 
         // Check error on invalid prototocol deployer address
         vm.expectRevert(ProtocolFactory.ProtocolFactory__zeroAddress.selector);
-        deployProtocolFactory(ZERO_ADDRESS, blockTime);
+        deployProtocolFactory(ZERO_ADDRESS);
 
-        // Check error on invalid block time
-        vm.expectRevert(ProtocolFactory.ProtocolFactory__invalidBlockTime.selector);
-        deployProtocolFactory(protocolDeployer, 0);
-
-        protocolFactory = deployProtocolFactory(protocolDeployer, blockTime);
+        protocolFactory = deployProtocolFactory(protocolDeployer);
         // Check protocol deployer is set correctly
         assertEq(protocolFactory.protocolDeployer(), protocolDeployer);
-        // Check block time is set correctly
-        assertEq(protocolFactory.BLOCK_TIME(), blockTime);
     }
 
     /************************************************
@@ -660,7 +650,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         address sovereignOracleModule = protocolFactory.deploySovereignOracleForPool(
             pool,
             address(this),
-            abi.encode(address(this), 12)
+            abi.encode(address(this))
         );
         assertEq(protocolFactory.sovereignOracleModuleNonce(), 1);
         assertTrue(protocolFactory.isValidSovereignOracleModule(sovereignOracleModule));
@@ -688,7 +678,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         address swapFeeModule = protocolFactory.deploySwapFeeModuleForPool(
             pool,
             address(this),
-            abi.encode(address(this), 12)
+            abi.encode(address(this))
         );
         assertEq(protocolFactory.swapFeeModuleNonce(), 1);
         assertTrue(protocolFactory.isValidSwapFeeModule(swapFeeModule));
@@ -716,7 +706,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         address sovereignALM = protocolFactory.deployALMPositionForSovereignPool(
             pool,
             address(this),
-            abi.encode(address(this), 12)
+            abi.encode(address(this))
         );
         assertEq(protocolFactory.almNonce(), 1);
         assertTrue(protocolFactory.isValidSovereignALMPosition(sovereignALM));
@@ -767,7 +757,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         address universalOracleModule = protocolFactory.deployUniversalOracleForPool(
             pool,
             address(this),
-            abi.encode(address(this), 12)
+            abi.encode(address(this))
         );
         assertEq(protocolFactory.universalOracleModuleNonce(), 1);
         assertTrue(protocolFactory.isValidUniversalOracleModule(universalOracleModule));
@@ -795,7 +785,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         address universalALM = protocolFactory.deployALMPositionForUniversalPool(
             pool,
             address(this),
-            abi.encode(address(this), 12)
+            abi.encode(address(this))
         );
         assertEq(protocolFactory.almNonce(), 1);
         assertTrue(protocolFactory.isValidUniversalALMPosition(universalALM));
@@ -812,12 +802,12 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
         setCreate2AddressWithContract(true);
 
         vm.expectRevert(ProtocolFactory.ProtocolFactory__addressWithContract.selector);
-        protocolFactory.deployUniversalOracleForPool(pool, address(this), abi.encode(address(this), 12));
+        protocolFactory.deployUniversalOracleForPool(pool, address(this), abi.encode(address(this)));
 
         setCreate2AddressWithContract(false);
 
         // Check error on contract not deployed
         vm.expectRevert(ProtocolFactory.ProtocolFactory__noContractDeployed.selector);
-        protocolFactory.deployUniversalOracleForPool(pool, address(this), abi.encode(address(this), 12));
+        protocolFactory.deployUniversalOracleForPool(pool, address(this), abi.encode(address(this)));
     }
 }
