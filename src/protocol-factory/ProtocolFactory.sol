@@ -650,7 +650,6 @@ contract ProtocolFactory is IProtocolFactory {
         );
 
         _universalPools[_token0][_token1].add(pool);
-        _universalPools[_token1][_token0].add(pool);
 
         emit UniversalPoolDeployed(_token0, _token1, pool);
     }
@@ -744,7 +743,6 @@ contract ProtocolFactory is IProtocolFactory {
         pool = IPoolDeployer(sovereignPoolFactory).deploy(bytes32(0), abi.encode(args));
 
         _sovereignPools[args.token0][args.token1].add(pool);
-        _sovereignPools[args.token1][args.token0].add(pool);
 
         emit SovereignPoolDeployed(args.token0, args.token1, pool);
     }
