@@ -85,7 +85,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
     error UniversalPool__swap_invalidLimitPriceTick();
     error UniversalPool__swap_noActiveALMPositions();
     error UniversalPool__swap_zeroAddressRecipient();
-    error UniversalPool__swap_zeroAmountOut();
+    error UniversalPool__swap_zeroAmountInUsedOrAmountOut();
 
     /************************************************
      *  CONSTANTS
@@ -587,7 +587,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         amountOut = swapCache.amountOutFilled;
 
         if (amountOut == 0 || amountInUsed == 0) {
-            revert UniversalPool__swap_zeroAmountOut();
+            revert UniversalPool__swap_zeroAmountInUsedOrAmountOut();
         }
 
         // Claim amountInFilled + effectiveFee from sender

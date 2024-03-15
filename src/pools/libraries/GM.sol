@@ -109,7 +109,7 @@ library GM {
                 if (_setupQuote.tokenOutAmount != 0) {
                     _processLiquidityQuote(_setupQuote, almLiquidityQuotePoolInputs, almStates[almNum], swapCache);
 
-                    // If amountInRemaining is 0 or amountOutExpect = 0, swap has been filled, so stop the loop.
+                    // If amountInRemaining is 0 or amountOutExpected = 0, swap has been filled, so stop the loop.
                     if (swapCache.amountInRemaining == 0 || almLiquidityQuotePoolInputs.amountOutExpected == 0) {
                         // The spot price tick does not change.
                         return almLiquidityQuotePoolInputs.currentSpotPriceTick;
