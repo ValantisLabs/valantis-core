@@ -20,7 +20,6 @@ struct PoolLocks {
     /**
         @notice Only locks the deposit function
     */
-    // @audit is this lock needed? Is it safe to always keep deposits open.
     uint8 deposit;
     /**
         @notice Only locks the swap function

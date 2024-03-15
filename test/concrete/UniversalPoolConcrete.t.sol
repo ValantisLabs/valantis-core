@@ -395,9 +395,17 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         pool.depositLiquidity(0, 0, new bytes(0));
 
         _unlockPool(1);
-        // check non alm can't call this function
-        vm.expectRevert(UniversalPool.UniversalPool__onlyActiveALM.selector);
-        pool.depositLiquidity(0, 0, new bytes(0));
+
+        // check non active alm can't call this function
+        address randomALM = _randomUser();
+        vm.prank(POOL_MANAGER);
+        pool.addALMPosition(false, true, true, 0, randomALM);
+        vm.prank(POOL_MANAGER);
+        pool.removeALMPosition(randomALM);
+
+        vm.prank(randomALM);
+        vm.expectRevert(ALMLib.ALMLib__depositLiquidity_onlyActiveALMCanDeposit.selector);
+        pool.depositLiquidity(1, 1, new bytes(0));
 
         vm.prank(POOL_MANAGER);
         pool.addALMPosition(false, true, true, 0, address(this));
@@ -601,7 +609,7 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         swapParams.amountIn = 1;
         swapParams.externalContext[0] = abi.encode(true, true, 50e18, 0, quote);
 
-        vm.expectRevert(UniversalPool.UniversalPool__swap_zeroAmountOut.selector);
+        vm.expectRevert(UniversalPool.UniversalPool__swap_zeroAmountInUsedOrAmountOut.selector);
         pool.swap(swapParams);
 
         quote = ALMLiquidityQuote(10e18, 1, new bytes(0));
@@ -692,7 +700,7 @@ contract UniversalPoolConcrete is UniversalPoolBase {
 
         uint256 amountInFilled = 30e18 + PriceTickMath.getTokenInAmount(true, 10e18, -1);
 
-        uint256 amountInExpected = _getAmountInUsedExpected(amountInFilled, 100);
+        uint256 amountInExpected = _getAmountInUsedExpected(swapParams.amountIn, amountInFilled, 100);
 
         _setupBalanceForUser(address(this), address(token0), 100e18);
 
@@ -711,7 +719,7 @@ contract UniversalPoolConcrete is UniversalPoolBase {
             address(this),
             abi.encodeWithSelector(
                 IUniversalSwapFeeModule.callbackOnSwapEnd.selector,
-                Math.mulDiv(amountInFilled, 100, 1e4),
+                Math.mulDiv(amountInFilled, 100, 1e4, Math.Rounding.Up),
                 -1,
                 amountInExpected,
                 40e18,
@@ -901,8 +909,17 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         pool.initializeTick(0);
     }
 
-    function _getAmountInUsedExpected(uint256 amountInFilled, uint256 feeBips) internal pure returns (uint256) {
-        uint256 effectiveFee = Math.mulDiv(amountInFilled, feeBips, 1e4);
-        return amountInFilled + effectiveFee;
+    function _getAmountInUsedExpected(
+        uint256 amountIn,
+        uint256 amountInFilled,
+        uint256 feeBips
+    ) internal pure returns (uint256) {
+        uint256 amountInMinusFee = Math.mulDiv(amountIn, feeBips, 1e4);
+
+        if (amountInMinusFee != amountInFilled) {
+            return amountInFilled + Math.mulDiv(amountInFilled, feeBips, 1e4, Math.Rounding.Up);
+        } else {
+            return amountIn;
+        }
     }
 }

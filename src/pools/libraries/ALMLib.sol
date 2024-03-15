@@ -25,6 +25,7 @@ library ALMLib {
      ***********************************************/
 
     error ALMLib__depositLiquidity_insufficientTokenAmount();
+    error ALMLib__depositLiquidity_onlyActiveALMCanDeposit();
     error ALMLib__depositLiquidity_zeroAmounts();
     error ALMLib__withdrawLiquidity_insufficientReserves();
 
@@ -51,7 +52,11 @@ library ALMLib {
             revert ALMLib__depositLiquidity_zeroAmounts();
         }
 
-        (, ALMPosition storage almPosition) = _ALMPositions.getALM(msg.sender);
+        (ALMStatus status, ALMPosition storage almPosition) = _ALMPositions.getALM(msg.sender);
+
+        if (status != ALMStatus.ACTIVE) {
+            revert ALMLib__depositLiquidity_onlyActiveALMCanDeposit();
+        }
 
         if (_amount0 > 0) almPosition.reserve0 += _amount0;
         if (_amount1 > 0) almPosition.reserve1 += _amount1;

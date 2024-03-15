@@ -87,7 +87,7 @@ library GM {
                     swapCache.feeInBips,
                     almStates[almNum].almReserves,
                     // Append baseALMQuotes to external context, if call is being made to meta ALM
-                    _getContext(almStates[almNum], baseALMQuotes, swapParams.externalContext[almNum])
+                    _getContext(almStates[almNum].almSlot0.isMetaALM, baseALMQuotes, swapParams.externalContext[almNum])
                 );
 
             if (almStates[almNum].isParticipatingInSwap) {
@@ -109,7 +109,7 @@ library GM {
                 if (_setupQuote.tokenOutAmount != 0) {
                     _processLiquidityQuote(_setupQuote, almLiquidityQuotePoolInputs, almStates[almNum], swapCache);
 
-                    // If amountInRemaining is 0, then the swap has been completely filled, so stop the loop.
+                    // If amountInRemaining is 0, swap has been filled, so stop the loop.
                     if (swapCache.amountInRemaining == 0) {
                         // The spot price tick does not change.
                         return almLiquidityQuotePoolInputs.currentSpotPriceTick;
@@ -186,7 +186,7 @@ library GM {
                             almLiquidityQuotePoolInputs,
                             almStates[almNum].almReserves,
                             _getContext(
-                                almStates[almNum],
+                                almStates[almNum].almSlot0.isMetaALM,
                                 baseALMQuotes,
                                 almStates[almNum].latestLiquidityQuote.internalContext
                             )
@@ -406,7 +406,6 @@ library GM {
     ) private pure {
         uint256 tokenInAmount;
 
-        // @audit: Check precision loss
         almLiquidityQuotePoolInputs.amountOutExpected -= almLiquidityQuote.tokenOutAmount;
 
         // If amountOutExpected is 0, avoid redundant calls due to precision issues by setting amountInRemaining to 0.
@@ -449,15 +448,11 @@ library GM {
         @dev For base ALMs, it returns the context value, for meta ALMs it appends the baseALMQuotes array to context.
      */
     function _getContext(
-        InternalSwapALMState memory almState,
+        bool isMetaALM,
         UnderlyingALMQuote[] memory baseALMQuotes,
         bytes memory context
     ) private pure returns (bytes memory) {
-        return (
-            almState.almSlot0.isMetaALM
-                ? abi.encode(MetaALMData({ almQuotes: baseALMQuotes, almContext: context }))
-                : context
-        );
+        return (isMetaALM ? abi.encode(MetaALMData({ almQuotes: baseALMQuotes, almContext: context })) : context);
     }
 
     /**

@@ -51,12 +51,14 @@ library EnumerableALMMap {
      ***********************************************/
 
     error EnumerableALMMap__addALMPosition();
+    error EnumerableALMMap__addALMPosition_almAlreadyExists();
     error EnumerableALMMap__almNotFound();
     error EnumerableALMMap__baseALMHasPositiveFeeShare();
     error EnumerableALMMap__highMetaALMFeeShare();
     error EnumerableALMMap__invalidALMAddress();
     error EnumerableALMMap__metaALMCannotShareQuotes();
     error EnumerableALMMap__removeALMPosition();
+    error EnumerableALMMap__removeALMPosition_almNotFound();
     error EnumerableALMMap__setMetaALMFeeShare_inactiveALM();
     error EnumerableALMMap__setMetaALMFeeShare_notMetaALM();
     error EnumerableALMMap__updateReservesPostSwap_inactiveALM();
@@ -152,7 +154,7 @@ library EnumerableALMMap {
 
             emit ALMAdded(_alm.slot0.almAddress);
         } else {
-            revert EnumerableALMMap__addALMPosition();
+            revert EnumerableALMMap__addALMPosition_almAlreadyExists();
         }
     }
 
@@ -197,7 +199,7 @@ library EnumerableALMMap {
 
             emit ALMRemoved(_almAddress);
         } else {
-            revert EnumerableALMMap__removeALMPosition();
+            revert EnumerableALMMap__removeALMPosition_almNotFound();
         }
     }
 

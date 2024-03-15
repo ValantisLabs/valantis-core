@@ -334,6 +334,12 @@ contract UniversalPoolFuzz is UniversalPoolBase {
             swapParams.swapCallbackContext = abi.encode(true, swapParams.amountIn);
         }
 
+        if (amountOutExpected == 0) {
+            vm.expectRevert(UniversalPool.UniversalPool__swap_zeroAmountInUsedOrAmountOut.selector);
+            pool.swap(swapParams);
+            return;
+        }
+
         (uint256 amountInUsed, uint256 amountOutActual) = pool.swap(swapParams);
 
         assertLe(amountInUsed, swapParams.amountIn);
