@@ -335,7 +335,7 @@ contract UniversalPoolFuzz is UniversalPoolBase {
         }
 
         if (amountOutExpected == 0) {
-            vm.expectRevert(UniversalPool.UniversalPool__swap_zeroAmountOut.selector);
+            vm.expectRevert(UniversalPool.UniversalPool__swap_zeroAmountInUsedOrAmountOut.selector);
             pool.swap(swapParams);
             return;
         }

@@ -609,7 +609,7 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         swapParams.amountIn = 1;
         swapParams.externalContext[0] = abi.encode(true, true, 50e18, 0, quote);
 
-        vm.expectRevert(UniversalPool.UniversalPool__swap_zeroAmountOut.selector);
+        vm.expectRevert(UniversalPool.UniversalPool__swap_zeroAmountInUsedOrAmountOut.selector);
         pool.swap(swapParams);
 
         quote = ALMLiquidityQuote(10e18, 1, new bytes(0));
