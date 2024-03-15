@@ -635,7 +635,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
                 swapCache.effectiveFee,
                 amountOut,
                 swapCache.spotPriceTick,
-                _swapParams.limitPriceTick
+                swapCache.spotPriceTickStart
             );
         }
 
