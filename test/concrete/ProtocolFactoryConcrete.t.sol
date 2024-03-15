@@ -519,7 +519,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
 
         // Check error on unauthorized call to pool without a pool manager
         vm.prank(signers[0]);
-        vm.expectRevert(ProtocolFactory.ProtocolFactory__deploySovereignGauge_onlyPoolManager.selector);
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__deploySovereignGauge_onlyProtocolManager.selector);
         protocolFactory.deploySovereignGauge(poolWithoutManager, gaugeManager);
 
         // This contract is protocol manager, hence is authorized to deploy a Gauge
@@ -595,7 +595,7 @@ contract ProtocolFactoryConcreteTest is ProtocolFactoryBase {
 
         // Check error on unauthorized call to pool without a pool manager
         vm.prank(signers[0]);
-        vm.expectRevert(ProtocolFactory.ProtocolFactory__deployUniversalGauge_onlyPoolManager.selector);
+        vm.expectRevert(ProtocolFactory.ProtocolFactory__deployUniversalGauge_onlyProtocolManager.selector);
         protocolFactory.deployUniversalGauge(poolWithoutManager, gaugeManager);
 
         // This contract is protocol manager, hence is authorized to deploy a Gauge

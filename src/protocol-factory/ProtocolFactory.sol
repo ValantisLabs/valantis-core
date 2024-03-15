@@ -27,10 +27,12 @@ contract ProtocolFactory is IProtocolFactory {
     error ProtocolFactory__deploySovereignGauge_alreadySet();
     error ProtocolFactory__deploySovereignGauge_invalidSovereignPool();
     error ProtocolFactory__deploySovereignGauge_onlyPoolManager();
+    error ProtocolFactory__deploySovereignGauge_onlyProtocolManager();
     error ProtocolFactory__deployUniversalPool_alreadySet();
     error ProtocolFactory__deployUniversalGauge_alreadySet();
     error ProtocolFactory__deployUniversalGauge_invalidUniversalPool();
     error ProtocolFactory__deployUniversalGauge_onlyPoolManager();
+    error ProtocolFactory__deployUniversalGauge_onlyProtocolManager();
     error ProtocolFactory__emissionsControllerNotSet();
     error ProtocolFactory__onlyProtocolDeployer();
     error ProtocolFactory__onlyProtocolManager();
@@ -680,7 +682,7 @@ contract ProtocolFactory is IProtocolFactory {
             if (poolManager != address(0) && msg.sender != poolManager) {
                 revert ProtocolFactory__deployUniversalGauge_onlyPoolManager();
             } else if (poolManager == address(0) && msg.sender != protocolManager) {
-                revert ProtocolFactory__deployUniversalGauge_onlyPoolManager();
+                revert ProtocolFactory__deployUniversalGauge_onlyProtocolManager();
             }
         }
 
@@ -774,7 +776,7 @@ contract ProtocolFactory is IProtocolFactory {
             if (poolManager != address(0) && msg.sender != poolManager) {
                 revert ProtocolFactory__deploySovereignGauge_onlyPoolManager();
             } else if (poolManager == address(0) && msg.sender != protocolManager) {
-                revert ProtocolFactory__deploySovereignGauge_onlyPoolManager();
+                revert ProtocolFactory__deploySovereignGauge_onlyProtocolManager();
             }
         }
 
