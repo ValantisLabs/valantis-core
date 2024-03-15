@@ -23,21 +23,16 @@ contract ProtocolFactory is IProtocolFactory {
      ***********************************************/
 
     error ProtocolFactory__auctionControllerNotSet();
-    error ProtocolFactory__deploySovereignPool_alreadySet();
     error ProtocolFactory__deploySovereignGauge_alreadySet();
-    error ProtocolFactory__deploySovereignGauge_invalidSovereignPool();
     error ProtocolFactory__deploySovereignGauge_onlyPoolManager();
     error ProtocolFactory__deploySovereignGauge_onlyProtocolManager();
-    error ProtocolFactory__deployUniversalPool_alreadySet();
     error ProtocolFactory__deployUniversalGauge_alreadySet();
-    error ProtocolFactory__deployUniversalGauge_invalidUniversalPool();
     error ProtocolFactory__deployUniversalGauge_onlyPoolManager();
     error ProtocolFactory__deployUniversalGauge_onlyProtocolManager();
     error ProtocolFactory__emissionsControllerNotSet();
     error ProtocolFactory__onlyProtocolDeployer();
     error ProtocolFactory__onlyProtocolManager();
     error ProtocolFactory__invalidALMFactory();
-    error ProtocolFactory__invalidBytecode();
     error ProtocolFactory__invalidSovereignOracleModuleFactory();
     error ProtocolFactory__invalidSovereignPool();
     error ProtocolFactory__invalidSwapFeeModuleFactory();
@@ -46,16 +41,13 @@ contract ProtocolFactory is IProtocolFactory {
     error ProtocolFactory__invalidValantisPool();
     error ProtocolFactory__zeroAddress();
     error ProtocolFactory__addressWithContract();
-    error ProtocolFactory__invalidDeployment();
     error ProtocolFactory__noContractDeployed();
-    error ProtocolFactory__poolAlreadyExists();
     error ProtocolFactory__setAuctionController_alreadySet();
     error ProtocolFactory__setEmissionsController_alreadySet();
     error ProtocolFactory__setGovernanceToken_alreadySet();
     error ProtocolFactory__setProtocolManager_alreadySet();
     error ProtocolFactory__setSovereignPoolFactory_alreadySet();
     error ProtocolFactory__setUniversalPoolFactory_alreadySet();
-    error ProtocolFactory__setPoolGaugeFactory_alreadySet();
     error ProtocolFactory__setUniversalGaugeFactory_alreadySet();
     error ProtocolFactory__setSovereignGaugeFactory_alreadySet();
     error ProtocolFactory__tokenNotContract();
@@ -397,7 +389,7 @@ contract ProtocolFactory is IProtocolFactory {
             revert ProtocolFactory__zeroAddress();
         }
 
-        if (address(auctionController) != address(0)) {
+        if (auctionController != address(0)) {
             revert ProtocolFactory__setAuctionController_alreadySet();
         }
 
@@ -680,7 +672,7 @@ contract ProtocolFactory is IProtocolFactory {
             revert ProtocolFactory__deployUniversalGauge_alreadySet();
         }
 
-        if (address(auctionController) == address(0)) {
+        if (auctionController == address(0)) {
             revert ProtocolFactory__auctionControllerNotSet();
         }
 
@@ -688,16 +680,16 @@ contract ProtocolFactory is IProtocolFactory {
             revert ProtocolFactory__emissionsControllerNotSet();
         }
 
-        if (address(governanceToken) == address(0)) {
+        if (governanceToken == address(0)) {
             revert ProtocolFactory__valTokenNotSet();
         }
 
         bytes memory constructorArgs = abi.encode(
             _pool,
             _manager,
-            address(auctionController),
+            auctionController,
             emissionsController,
-            address(governanceToken)
+            governanceToken
         );
         gauge = IPoolGaugeDeployer(universalGaugeFactory).deploy(bytes32(0), constructorArgs);
 
@@ -773,7 +765,7 @@ contract ProtocolFactory is IProtocolFactory {
             revert ProtocolFactory__deploySovereignGauge_alreadySet();
         }
 
-        if (address(auctionController) == address(0)) {
+        if (auctionController == address(0)) {
             revert ProtocolFactory__auctionControllerNotSet();
         }
 
@@ -781,16 +773,16 @@ contract ProtocolFactory is IProtocolFactory {
             revert ProtocolFactory__emissionsControllerNotSet();
         }
 
-        if (address(governanceToken) == address(0)) {
+        if (governanceToken == address(0)) {
             revert ProtocolFactory__valTokenNotSet();
         }
 
         bytes memory constructorArgs = abi.encode(
             _pool,
             _manager,
-            address(auctionController),
+            auctionController,
             emissionsController,
-            address(governanceToken)
+            governanceToken
         );
         gauge = IPoolGaugeDeployer(sovereignGaugeFactory).deploy(bytes32(0), constructorArgs);
         ISovereignPool(_pool).setGauge(gauge);
@@ -920,11 +912,9 @@ contract ProtocolFactory is IProtocolFactory {
             revert ProtocolFactory__zeroAddress();
         }
 
-        if (factories.contains(factory)) {
+        if (!factories.add(factory)) {
             revert ProtocolFactory___addFactory_alreadyAdded();
         }
-
-        factories.add(factory);
     }
 
     function _removeFactory(address factory, EnumerableSet.AddressSet storage factories) private {
@@ -932,11 +922,9 @@ contract ProtocolFactory is IProtocolFactory {
             revert ProtocolFactory__zeroAddress();
         }
 
-        if (!factories.contains(factory)) {
+        if (!factories.remove(factory)) {
             revert ProtocolFactory___removeFactory_notWhitelisted();
         }
-
-        factories.remove(factory);
     }
 
     function _deployALMPositionForPool(

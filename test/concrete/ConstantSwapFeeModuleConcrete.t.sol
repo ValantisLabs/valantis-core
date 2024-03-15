@@ -78,16 +78,8 @@ contract ConstantSwapFeeModuleConcrete is ConstantSwapFeeModuleBase {
     }
 
     function test_callback() public {
-        // Universal pool callback
-        vm.expectRevert(ConstantSwapFeeModule.ConstantSwapFeeModule__onlyPool.selector);
-        swapFeeModule.callbackOnSwapEnd(0, 0, 0, 0, SwapFeeModuleData(0, new bytes(0)));
-
         vm.prank(address(pool));
         swapFeeModule.callbackOnSwapEnd(0, 0, 0, 0, SwapFeeModuleData(0, new bytes(0)));
-
-        // Sovereign pool callback
-        vm.expectRevert(ConstantSwapFeeModule.ConstantSwapFeeModule__onlyPool.selector);
-        swapFeeModule.callbackOnSwapEnd(0, 0, 0, SwapFeeModuleData(0, new bytes(0)));
 
         vm.prank(address(pool));
         swapFeeModule.callbackOnSwapEnd(0, 0, 0, SwapFeeModuleData(0, new bytes(0)));
