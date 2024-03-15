@@ -761,7 +761,7 @@ contract UniversalPoolConcrete is UniversalPoolBase {
         uint256 amountInExpected = 30e18 + PriceTickMath.getTokenInAmount(true, 10e18, -1);
 
         _setupBalanceForUser(address(this), address(token0), 100e18);
-
+        int24 currentTick = pool.spotPriceTick();
         vm.expectCall(
             address(this),
             abi.encodeWithSelector(
@@ -771,7 +771,7 @@ contract UniversalPoolConcrete is UniversalPoolBase {
                 0,
                 40e18,
                 -1,
-                -2
+                currentTick
             )
         );
 

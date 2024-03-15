@@ -10,6 +10,6 @@ interface IUniversalOracle {
         uint256 fee,
         uint256 amountOut,
         int24 spotPriceTick,
-        int24 limitPriceTick
+        int24 spotPriceTickStart
     ) external;
 }
