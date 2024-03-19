@@ -622,7 +622,7 @@ contract UniversalPool is IUniversalPool, UniversalPoolReentrancyGuard {
         }
 
         // Update Oracle Data
-        if (amountInUsed > 0 && _state.universalOracle != address(0)) {
+        if (_state.universalOracle != address(0)) {
             IUniversalOracle(_state.universalOracle).writeOracleUpdate(
                 _swapParams.isZeroToOne,
                 amountInUsed,
