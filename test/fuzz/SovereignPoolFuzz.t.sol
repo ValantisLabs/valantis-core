@@ -380,8 +380,8 @@ contract SovereignPoolFuzz is SovereignPoolBase {
             return;
         }
 
-        if (fuzzParams.amountOut == 0) {
-            vm.expectRevert(SovereignPool.SovereignPool__swap_zeroAmountOut.selector);
+        if (fuzzParams.amountOut == 0 || fuzzParams.amountInFilled == 0) {
+            vm.expectRevert(SovereignPool.SovereignPool__swap_zeroAmountInOrOut.selector);
             pool.swap(swapParams);
             return;
         }

@@ -79,7 +79,7 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
     error SovereignPool__swap_invalidRecipient();
     error SovereignPool__swap_insufficientAmountIn();
     error SovereignPool__swap_invalidSwapTokenOut();
-    error SovereignPool__swap_zeroAmountOut();
+    error SovereignPool__swap_zeroAmountInOrOut();
     error SovereignPool__setSwapFeeModule_timelock();
     error SovereignPool__withdrawLiquidity_withdrawDisabled();
     error SovereignPool__withdrawLiquidity_insufficientReserve0();
@@ -757,9 +757,9 @@ contract SovereignPool is ISovereignPool, ReentrancyGuard {
             revert SovereignPool__swap_invalidLiquidityQuote();
         }
 
-        // If amountOut is 0, we do not transfer any input token
-        if (amountOut == 0) {
-            revert SovereignPool__swap_zeroAmountOut();
+        // If amountOut or amountInFilled is 0, we do not transfer any input token
+        if (amountOut == 0 || liquidityQuote.amountInFilled == 0) {
+            revert SovereignPool__swap_zeroAmountInOrOut();
         }
 
         // Calculate the actual swap fee to be charged in input token (`effectiveFee`),

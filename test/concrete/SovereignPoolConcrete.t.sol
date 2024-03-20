@@ -733,7 +733,7 @@ contract SovereignPoolConcreteTest is SovereignPoolBase {
         // If amountOut quoted is zero, should revert
         swapParams.swapContext.externalContext = abi.encode(ALMLiquidityQuote(false, 0, 5e18));
 
-        vm.expectRevert(SovereignPool.SovereignPool__swap_zeroAmountOut.selector);
+        vm.expectRevert(SovereignPool.SovereignPool__swap_zeroAmountInOrOut.selector);
         pool.swap(swapParams);
 
         _setupBalanceForUser(address(pool), address(token0), 10e18);
