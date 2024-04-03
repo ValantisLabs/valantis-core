@@ -49,7 +49,7 @@ Contains all smart contract external dependencies, installed via Foundry as git 
 
 ### src
 
-All relevant contracts to be audited are in src folder (excluding `/mocks` folders). Number of lines of code:
+Contains source code of the smart contracts (excluding `/mocks` folders). Number of lines of code:
 
 ```
 cloc src --not-match-d=mocks
@@ -61,17 +61,17 @@ cloc src --not-match-d=mocks
 
 **libraries:** Various helper libraries used in other folders.
 
-**oracles:** Contains interface for Oracle which can be implemented to be plugged in Sovereign Pool
+**oracles:** Contains interface for Oracle Module. There are two types, Universal and Sovereign, one of each type of pool.
 
-**pools:** Implementation of Sovereign pool, the core backbone of Valantis that hosts all modules, including LM, Swap Fee and Oracle modules.
+**pools:** Implementation of Sovereign and Universal pools, the core backbone of Valantis that hosts all Modules, including LM, Swap Fee and Oracle modules.
 
 **protocol-factory:** Holds the official addresses of the most important core contract factories in the protocol, including: Universal and Sovereign Pool factories, LM factories (one for each LM design), Swap Fee Module factories, Universal and Sovereign Oracle factories, Universal and Sovereign Gauge factories, etc, as well as respective deployments from within those factories. Valantis DAO will be able to add or remove certain addresses in this whitelist.
 
-**swap-fee-modules:** Swap Fee module interface, which can be implemented and then plugged into Sovereign pools. Only contains a swap fee module whose fixed swap fee is configurable by a designated address.
+**swap-fee-modules:** Swap Fee module interface, which can be implemented and then plugged into Sovereign or Universal pools. Currently only contains a Swap Fee Module whose fixed swap fee is configurable by a designated address.
 
 **utils:** Utils contracts which can be extended or used as library by main contracts.
 
-**mocks:** Mock contracts used to simulate different behaviour for different components.
+**mocks:** Mock contracts used to simulate different behaviour for different components, used in tests.
 
 ### test
 
