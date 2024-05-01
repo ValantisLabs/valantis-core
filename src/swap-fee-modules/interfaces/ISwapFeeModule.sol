@@ -11,7 +11,7 @@ struct SwapFeeModuleData {
     bytes internalContext;
 }
 
-interface ISwapFeeModule {
+interface ISwapFeeModuleMinimal {
     /**
         @notice Returns the swap fee in bips for both Universal & Sovereign Pools.
         @param _tokenIn The address of the token that the user wants to swap.
@@ -28,7 +28,9 @@ interface ISwapFeeModule {
         address _user,
         bytes memory _swapFeeModuleContext
     ) external returns (SwapFeeModuleData memory swapFeeModuleData);
+}
 
+interface ISwapFeeModule is ISwapFeeModuleMinimal {
     /**
         @notice Callback function called by the pool after the swap has finished. ( Universal Pools )
         @param _effectiveFee The effective fee charged for the swap.
