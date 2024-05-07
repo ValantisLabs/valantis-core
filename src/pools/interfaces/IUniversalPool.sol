@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
 import { Slot0, ALMPosition, ALMStatus, PoolState, SwapParams } from '../structs/UniversalPoolStructs.sol';
