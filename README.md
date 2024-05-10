@@ -31,9 +31,11 @@ forge test
 To run integration tests, first copy `.env.example` to `.env` :
 
 ```
-cp .env.example .env
+cp .env.sample .env
 npx hardhat test
 ```
+
+Note: If the default public RPC fails, change `MAINNET_URL` to another provider's url.
 
 Docs:
 
