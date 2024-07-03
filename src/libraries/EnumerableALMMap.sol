@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 
 import { ALMReserves } from '../ALM/structs/UniversalALMStructs.sol';
 import { ALMPosition, ALMStatus, Slot0 } from '../pools/structs/UniversalPoolStructs.sol';

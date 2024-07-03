@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 
 import { MockSovereignALMFactory } from 'src/mocks/MockSovereignALMFactory.sol';
 import { MockSovereignALM } from 'src/mocks/MockSovereignALM.sol';
