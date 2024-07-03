@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 
 interface IEmissionsController {
     function calculateGaugeEmissions(address _gauge) external returns (uint256 emissions);

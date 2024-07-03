@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 
 import { IValantisPool } from '../interfaces/IValantisPool.sol';
 import { PoolLocks } from '../structs/ReentrancyGuardStructs.sol';

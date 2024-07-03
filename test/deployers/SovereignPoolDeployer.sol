@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 
 import { SovereignPoolConstructorArgs } from '../../src/pools/structs/SovereignPoolStructs.sol';
 import { SovereignPool } from '../../src/pools/SovereignPool.sol';

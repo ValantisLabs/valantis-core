@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 
 import { SovereignPoolConstructorArgs } from '../../pools/structs/SovereignPoolStructs.sol';
 
